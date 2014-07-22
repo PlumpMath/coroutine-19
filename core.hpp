@@ -6,23 +6,23 @@
 
 namespace coroutine
 {
-        struct coroutine;
+    struct coroutine;
 
-        typedef intptr_t (*routine_t)(intptr_t);
-        typedef coroutine * coroutine_t;
+    typedef intptr_t (*routine_t)(intptr_t);
+    typedef coroutine * coroutine_t;
 
-        enum status_t
-        {
-                S_DEAD = 0,
-                S_SUSPEND = 1,
-                S_RUNNING = 2
-        };
+    enum status_t
+    {
+        S_DEAD = 0,
+        S_SUSPEND = 1,
+        S_RUNNING = 2
+    };
 
-        coroutine_t create(routine_t f, int stack=64*1024);
-        void destroy(coroutine_t c);
+    coroutine_t create(routine_t f, int stack=64*1024);
+    void destroy(coroutine_t c);
 
-        intptr_t resume(coroutine_t c, intptr_t data=0);
-        intptr_t yield(coroutine_t c, intptr_t data=0);
+    intptr_t resume(coroutine_t c, intptr_t data=0);
+    intptr_t yield(coroutine_t c, intptr_t data=0);
         
 }
 
