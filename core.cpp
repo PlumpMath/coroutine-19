@@ -21,8 +21,6 @@ namespace coroutine
     struct coroutine
     {
         int status;
-        char *sp;
-        int ssize;
         routine_t f;
         intptr_t data;
         void *context;
@@ -43,15 +41,14 @@ namespace coroutine
     coroutine_t create(routine_t f, int stack)
     {
         void *p = std::malloc(stack + sizeof(coroutine));
-        char *sp = (char *)p + stack;
-        // alloc coroutine at top of stack
-        coroutine_t co = reinterpret_cast<coroutine_t>(sp);
+        char *top = (char *)p + stack;
+        // alloc coroutine at top of stack and the stack is growing
+        // downward.
+        coroutine_t co = reinterpret_cast<coroutine_t>(top);
         std::memset(co, 0, sizeof(*co));
         co->status = S_SUSPEND;
-        co->sp = sp;
-        co->ssize = stack;
         co->f = f;
-        co->context = ctx::make_fcontext(co->sp, co->ssize,
+        co->context = ctx::make_fcontext(top, stack,
                                          routine_starter);
         return co;
     }
@@ -60,7 +57,8 @@ namespace coroutine
     {
         assert(c->status != S_RUNNING);
         // adjust pointer to head
-        void *p = (char*)c - c->ssize;
+        ctx::fcontext_t *ctx = (ctx::fcontext_t*)c->context;
+        void *p = (char*)c - ctx->fc_stack.size;
         std::free(p);
     }
 
