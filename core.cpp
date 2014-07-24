@@ -43,10 +43,12 @@ namespace coroutine
     coroutine_t create(routine_t f, int stack)
     {
         void *p = std::malloc(stack + sizeof(coroutine));
-        coroutine_t co = reinterpret_cast<coroutine_t>(p);
+        char *sp = (char *)p + stack;
+        // alloc coroutine at top of stack
+        coroutine_t co = reinterpret_cast<coroutine_t>(sp);
         std::memset(co, 0, sizeof(*co));
         co->status = S_SUSPEND;
-        co->sp = (char*)(co + 1) + stack;
+        co->sp = sp;
         co->ssize = stack;
         co->f = f;
         co->context = ctx::make_fcontext(co->sp, co->ssize,
@@ -57,7 +59,9 @@ namespace coroutine
     void destroy(coroutine_t c)
     {
         assert(c->status != S_RUNNING);
-        std::free(c);
+        // adjust pointer to head
+        void *p = (char*)c - c->ssize;
+        std::free(p);
     }
 
     intptr_t resume(coroutine_t c, intptr_t data)
