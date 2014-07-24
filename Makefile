@@ -18,9 +18,12 @@ main:main.o core.o
 
 # ------ unit test ------
 
-test: core_test
+test: core_test coroutine_test
 
 core_test: core_test.o
+	$(CXX) -o $@ $^ $(LDFLAGS) -lgtest -lgtest_main
+
+coroutine_test: coroutine_test.o
 	$(CXX) -o $@ $^ $(LDFLAGS) -lgtest -lgtest_main
 
 clean:
