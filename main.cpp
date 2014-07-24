@@ -47,7 +47,7 @@ int main(int argc, char **argv)
         n = co::resume(fc, 3);
         std::printf("main4, n=%ld\n", n);
 
-        // n = co::resume(fc, 4);  // should be abort
+        assert(is_complete(fc));
 
         co::destroy(fc);
         std::printf("destroy\n");
