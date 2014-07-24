@@ -10,6 +10,14 @@ namespace ctx = boost::context;
 
 namespace coroutine
 {
+    
+    enum status_t
+    {
+        S_COMPLETE = 0,
+        S_SUSPEND = 1,
+        S_RUNNING = 2
+    };
+
     struct coroutine
     {
         status_t status;
@@ -26,7 +34,7 @@ namespace coroutine
     {
         coroutine_t co = reinterpret_cast<coroutine_t>(data);
         co->data = co->f(co->data);
-        co->status = S_DEAD;
+        co->status = S_COMPLETE;
         ctx::jump_fcontext(co->context, &co->caller, co->data);
     }
         
@@ -70,6 +78,11 @@ namespace coroutine
                            &c->caller,
                            reinterpret_cast<intptr_t>(c));
         return c->data;
+    }
+
+    bool is_complete(coroutine_t c)
+    {
+        return c->status == S_COMPLETE;
     }
 
 }
