@@ -121,6 +121,7 @@ namespace coroutine
         ctx::jump_fcontext((ctx::fcontext_t*)c->caller,
                            (ctx::fcontext_t*)c->context,
                            reinterpret_cast<intptr_t>(c));
+        c->caller = NULL;
 
         if(c->rethrow && c->has_std_exception)
             throw exception_std();

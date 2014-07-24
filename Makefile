@@ -24,7 +24,7 @@ core_test: core_test.o
 	$(CXX) -o $@ $^ $(LDFLAGS) -lgtest -lgtest_main
 
 clean:
-	rm -f main *.o
+	rm -f main core_test *.o
 
 
 
