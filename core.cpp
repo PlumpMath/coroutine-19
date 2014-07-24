@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <assert.h>
+#include <new>
 
 #include <boost/context/all.hpp>
 namespace ctx = boost::context;
@@ -25,6 +26,11 @@ namespace coroutine
         intptr_t data;
         void *context;
         void *caller;
+
+        coroutine() :
+            status(S_COMPLETE), f(NULL), data(0),
+            context(NULL), caller(NULL)
+            {}
     };
 
     static
@@ -44,8 +50,7 @@ namespace coroutine
         char *top = (char *)p + stack;
         // alloc coroutine at top of stack and the stack is growing
         // downward.
-        coroutine_t co = reinterpret_cast<coroutine_t>(top);
-        std::memset(co, 0, sizeof(*co));
+        coroutine_t co = new(top) coroutine;
         co->status = S_SUSPEND;
         co->f = f;
         co->context = ctx::make_fcontext(top, stack,
@@ -59,6 +64,7 @@ namespace coroutine
         // adjust pointer to head
         ctx::fcontext_t *ctx = (ctx::fcontext_t*)c->context;
         void *p = (char*)c - ctx->fc_stack.size;
+        c->~coroutine();
         std::free(p);
     }
 
