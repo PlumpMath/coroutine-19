@@ -123,5 +123,28 @@ TEST(Core, no_rethrow)
     
     co::destroy(f);
 }
+/*
+void echo(coroutine_t self)
+{
+    yield(self, self.data());
+}
+*/
+intptr_t echo(intptr_t data)
+{
+    co::coroutine_t self = (co::coroutine_t)data;
+    data = yield(self);
+    while(true) data = yield(self, data);
+}
+
+TEST(Core, echo)
+{
+    co::coroutine_t f = co::create(echo);
+    co::resume(f, (intptr_t)f);
+
+    for(int i=0; i<128; ++i)
+    {
+        EXPECT_EQ(resume(f, i), i);
+    }
+}
 
 
