@@ -5,6 +5,7 @@
 #include <cstring>
 #include <assert.h>
 #include <new>
+#include <exception>
 
 #include <boost/context/all.hpp>
 namespace ctx = boost::context;
@@ -26,18 +27,53 @@ namespace coroutine
         intptr_t data;
         void *context;
         void *caller;
+        bool has_std_exception;
+        bool has_unknown_exception;
+        bool unwinded;
+        bool need_unwind;
+        bool force_unwind;
 
         coroutine() :
             status(S_COMPLETE), f(NULL), data(0),
-            context(NULL), caller(NULL)
+            context(NULL), caller(NULL),
+            has_std_exception(false),
+            has_unknown_exception(false),
+            unwinded(false),
+            need_unwind(true),
+            force_unwind(false)
             {}
+    };
+
+    struct forced_unwind {};
+    struct exception_unknown {};
+    struct exception_std : public std::exception
+    {
+        virtual ~exception_std() throw() {}
+        const char* what() const throw() {
+            return "catch std::exception from coroutine";
+        }
     };
 
     static
     void routine_starter(intptr_t data)
     {
         coroutine_t co = reinterpret_cast<coroutine_t>(data);
-        co->data = co->f(co->data);
+        try
+        {
+            co->data = co->f(co->data);
+        }
+        catch (const forced_unwind &)
+        {
+            co->unwinded = true;
+        }
+        catch (const std::exception &)
+        {
+            co->has_std_exception = true;
+        }
+        catch (...)
+        {
+            co->has_unknown_exception = true;
+        }
         co->status = S_COMPLETE;
         ctx::jump_fcontext((ctx::fcontext_t*)co->context,
                            (ctx::fcontext_t*)co->caller,
@@ -60,8 +96,13 @@ namespace coroutine
 
     void destroy(coroutine_t c)
     {
-        assert(c->status != S_RUNNING);
-        // adjust pointer to head
+        if(! is_complete(c) && c->need_unwind)
+        {
+            // unwind the stack
+            c->force_unwind = true;
+            resume(c);
+        }
+        // adjust pointer to head of memory
         ctx::fcontext_t *ctx = (ctx::fcontext_t*)c->context;
         void *p = (char*)c - ctx->fc_stack.size;
         c->~coroutine();
@@ -78,6 +119,10 @@ namespace coroutine
         ctx::jump_fcontext((ctx::fcontext_t*)c->caller,
                            (ctx::fcontext_t*)c->context,
                            reinterpret_cast<intptr_t>(c));
+
+        if(c->has_std_exception) throw exception_std();
+        if(c->has_unknown_exception) throw exception_unknown();
+            
         return c->data;
     }
 
@@ -89,6 +134,10 @@ namespace coroutine
         ctx::jump_fcontext((ctx::fcontext_t*)c->context,
                            (ctx::fcontext_t*)c->caller,
                            reinterpret_cast<intptr_t>(c));
+        if(c->force_unwind)
+        {
+            throw forced_unwind();
+        }
         return c->data;
     }
 

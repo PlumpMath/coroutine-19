@@ -16,6 +16,13 @@ all: main
 main:main.o core.o
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
+# ------ unit test ------
+
+test: core_test
+
+core_test: core_test.o
+	$(CXX) -o $@ $^ $(LDFLAGS) -lgtest -lgtest_main
+
 clean:
 	rm -f main *.o
 
