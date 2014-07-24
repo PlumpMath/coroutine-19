@@ -20,13 +20,13 @@ namespace coroutine
 
     struct coroutine
     {
-        status_t status;
+        int status;
         char *sp;
         int ssize;
         routine_t f;
         intptr_t data;
-        ctx::fcontext_t *context;
-        ctx::fcontext_t caller;
+        void *context;
+        void *caller;
     };
 
     static
@@ -35,7 +35,9 @@ namespace coroutine
         coroutine_t co = reinterpret_cast<coroutine_t>(data);
         co->data = co->f(co->data);
         co->status = S_COMPLETE;
-        ctx::jump_fcontext(co->context, &co->caller, co->data);
+        ctx::jump_fcontext((ctx::fcontext_t*)co->context,
+                           (ctx::fcontext_t*)co->caller,
+                           co->data);
     }
         
     coroutine_t create(routine_t f, int stack)
@@ -63,8 +65,10 @@ namespace coroutine
         assert(c->status == S_SUSPEND);
         c->status = S_RUNNING;
         c->data = data;
-        ctx::jump_fcontext(&c->caller,
-                           c->context,
+        ctx::fcontext_t caller;
+        c->caller = &caller;
+        ctx::jump_fcontext((ctx::fcontext_t*)c->caller,
+                           (ctx::fcontext_t*)c->context,
                            reinterpret_cast<intptr_t>(c));
         return c->data;
     }
@@ -74,8 +78,8 @@ namespace coroutine
         assert(c->status == S_RUNNING);
         c->status = S_SUSPEND;
         c->data = data;
-        ctx::jump_fcontext(c->context,
-                           &c->caller,
+        ctx::jump_fcontext((ctx::fcontext_t*)c->context,
+                           (ctx::fcontext_t*)c->caller,
                            reinterpret_cast<intptr_t>(c));
         return c->data;
     }
