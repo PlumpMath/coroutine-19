@@ -32,6 +32,7 @@ namespace coroutine
         bool unwinded;
         bool need_unwind;
         bool force_unwind;
+        bool rethrow;
 
         coroutine() :
             status(S_COMPLETE), f(NULL), data(0),
@@ -40,7 +41,8 @@ namespace coroutine
             has_unknown_exception(false),
             unwinded(false),
             need_unwind(true),
-            force_unwind(false)
+            force_unwind(false),
+            rethrow(true)
             {}
     };
 
@@ -120,8 +122,10 @@ namespace coroutine
                            (ctx::fcontext_t*)c->context,
                            reinterpret_cast<intptr_t>(c));
 
-        if(c->has_std_exception) throw exception_std();
-        if(c->has_unknown_exception) throw exception_unknown();
+        if(c->rethrow && c->has_std_exception)
+            throw exception_std();
+        if(c->rethrow && c->has_unknown_exception)
+            throw exception_unknown();
             
         return c->data;
     }

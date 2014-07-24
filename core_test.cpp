@@ -109,3 +109,19 @@ TEST(Core, throw_unknown_exception)
 }
 
 
+intptr_t test_no_rethrow(intptr_t data)
+{
+    throw std::bad_alloc();
+    return 0;
+}
+
+TEST(Core, no_rethrow)
+{
+    co::coroutine_t f = co::create(test_no_rethrow);
+    f->rethrow = false;
+    EXPECT_NO_THROW(co::resume(f));
+    
+    co::destroy(f);
+}
+
+
