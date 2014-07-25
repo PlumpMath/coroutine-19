@@ -12,39 +12,39 @@ namespace ctx = boost::context;
 namespace coroutine
 {
     
-    enum status_t
+    enum flag_t
     {
-        S_COMPLETE = 0,
-        S_SUSPEND = 1,
-        S_RUNNING = 2
+        // 协程运行状态：挂起<->运行->完成
+        flag_complete = 1 << 1,     // 标识是否运行完
+        flag_suspend = 1 << 2,  // 标识是否挂起状态
+        // running == ! complete && ! suspend
+
+        // 协程选项值
+        flag_unwind = 1 << 3,   // 回溯栈开关
+        flag_rethrow = 1 << 4,  // 重抛异常开关
+
+        // 内部标识值
+        flag_request_unwind_stack = 1 << 5, // 请求回溯栈
+        flag_has_std_exception = 1 << 7,    // 有std异常抛出
+        flag_has_unknown_exception = 1 << 8, // 有未知异常抛出
     };
 
     struct coroutine_t
     {
-        int status;
+        int flags;
         routine_t f;
         intptr_t data;
         void *context;
         void *caller;
-        bool has_std_exception;
-        bool has_unknown_exception;
-        bool unwinded;
-        bool need_unwind;
-        bool force_unwind;
-        bool rethrow;
         int refcount;
 
         coroutine_t() :
-            status(S_COMPLETE), f(NULL), data(0),
+            flags(0), f(NULL), data(0),
             context(NULL), caller(NULL),
-            has_std_exception(false),
-            has_unknown_exception(false),
-            unwinded(false),
-            need_unwind(true),
-            force_unwind(false),
-            rethrow(true),
             refcount(0)
             {}
+
+        
     };
 
     struct forced_unwind {};
@@ -54,37 +54,31 @@ namespace coroutine
     {
         coroutine_t *co(reinterpret_cast<coroutine_t*>(data));
         try
-        {
-            co->data = co->f(co, co->data);
-        }
+        { co->data = co->f(co, co->data); }
         catch (const forced_unwind &)
-        {
-            co->unwinded = true;
-        }
+        {}
         catch (const std::exception &)
-        {
-            co->has_std_exception = true;
-        }
+        { co->flags |= flag_has_std_exception; }
         catch (...)
-        {
-            co->has_unknown_exception = true;
-        }
-        co->status = S_COMPLETE;
+        { co->flags |= flag_has_unknown_exception; }
+
+        co->flags |= flag_complete;
         ctx::jump_fcontext((ctx::fcontext_t*)co->context,
                            (ctx::fcontext_t*)co->caller,
                            co->data);
     }
         
-    coroutine_ptr create(routine_t f, bool rethrow, int stack)
+    coroutine_ptr create(routine_t f, bool rethrow, bool unwind, int stack)
     {
         void *p = std::malloc(stack + sizeof(coroutine_t));
         char *top = (char *)p + stack;
         // alloc coroutine at top of stack and the stack is growing
         // downward.
-        coroutine_t *co = new(top) coroutine_t;
-        co->status = S_SUSPEND;
+        coroutine_ptr co(new(top) coroutine_t);
+        co->flags |= flag_suspend;
+        if(unwind) co->flags |= flag_unwind;
+        if(rethrow) co->flags |= flag_rethrow;
         co->f = f;
-        co->rethrow = rethrow;
         co->context = ctx::make_fcontext(top, stack,
                                          routine_starter);
         return co;
@@ -92,10 +86,10 @@ namespace coroutine
 
     void destroy(coroutine_t *c)
     {
-        if((! is_complete(c)) && c->need_unwind)
+        if(!(c->flags & flag_complete) &&
+            (c->flags & flag_unwind))
         {
-            // unwind the stack
-            c->force_unwind = true;
+            c->flags |= flag_request_unwind_stack;
             resume(c);
         }
         // adjust pointer to head of memory
@@ -107,8 +101,9 @@ namespace coroutine
 
     intptr_t resume(coroutine_t *c, intptr_t data)
     {
-        assert(c->status == S_SUSPEND);
-        c->status = S_RUNNING;
+        assert((c->flags & flag_suspend) &&
+               !(c->flags & flag_complete));
+        c->flags &= ~flag_suspend;
         c->data = data;
         ctx::fcontext_t caller;
         c->caller = &caller;
@@ -117,9 +112,11 @@ namespace coroutine
                            reinterpret_cast<intptr_t>(c));
         c->caller = NULL;
 
-        if(c->rethrow && c->has_std_exception)
+        if((c->flags & flag_rethrow) &&
+           (c->flags & flag_has_std_exception))
             throw exception_std();
-        if(c->rethrow && c->has_unknown_exception)
+        if((c->flags & flag_rethrow) &&
+           (c->flags & flag_has_unknown_exception))
             throw exception_unknown();
             
         return c->data;
@@ -127,13 +124,14 @@ namespace coroutine
 
     intptr_t yield(coroutine_t* c, intptr_t data)
     {
-        assert(c->status == S_RUNNING);
-        c->status = S_SUSPEND;
+        assert(!(c->flags & flag_suspend) &&
+               !(c->flags & flag_complete));
+        c->flags |= flag_suspend;
         c->data = data;
         ctx::jump_fcontext((ctx::fcontext_t*)c->context,
                            (ctx::fcontext_t*)c->caller,
                            reinterpret_cast<intptr_t>(c));
-        if(c->force_unwind)
+        if(c->flags & flag_request_unwind_stack)
         {
             throw forced_unwind();
         }
@@ -142,7 +140,7 @@ namespace coroutine
 
     bool is_complete(coroutine_t *c)
     {
-        return c->status == S_COMPLETE;
+        return c->flags & flag_complete;
     }
 
     void intrusive_ptr_add_ref(coroutine_t *p)

@@ -10,20 +10,9 @@ namespace coroutine
 {
     struct coroutine_t;
 
-    typedef intptr_t (*routine_t)(coroutine_t *, intptr_t);
     typedef boost::intrusive_ptr<coroutine_t> coroutine_ptr;
-
-    void intrusive_ptr_add_ref(coroutine_t *p);
-    void intrusive_ptr_release(coroutine_t *p);
-
-    struct exception_unknown {};
-    struct exception_std : public std::exception
-    {
-        virtual ~exception_std() throw() {}
-        const char* what() const throw() {
-            return "catch std::exception from coroutine";
-        }
-    };
+    typedef coroutine_t *self_ptr;
+    typedef intptr_t (*routine_t)(self_ptr, intptr_t);
 
     coroutine_ptr create(routine_t f, bool rethrow=true, int stack=64*1024);
     void destroy(coroutine_t *c);
@@ -35,7 +24,21 @@ namespace coroutine
     intptr_t yield(coroutine_t *c, intptr_t data=0);
 
     bool is_complete(coroutine_t *c);
+
+
         
+    void intrusive_ptr_add_ref(coroutine_t *p);
+    void intrusive_ptr_release(coroutine_t *p);
+
+    struct exception_unknown {};
+
+    struct exception_std : public std::exception
+    {
+        virtual ~exception_std() throw() {}
+        const char* what() const throw() {
+            return "catch std::exception from coroutine";
+        }
+    };
 }
 
 #endif  // _COROUTINE_CORE_HPP_
