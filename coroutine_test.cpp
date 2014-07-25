@@ -1,7 +1,8 @@
 #include <coroutine.hpp>
 
-#include <core.cpp>
+#include <core.hpp>
 #include <gtest/gtest.h>
+
 
 intptr_t echo_twice(coroutine::Coroutine &self, intptr_t data)
 {

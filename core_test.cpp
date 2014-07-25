@@ -1,4 +1,4 @@
-#include <core.cpp>
+#include <core.hpp>
 #include <gtest/gtest.h>
 
 
@@ -23,7 +23,7 @@ intptr_t test_no_data_transfered(intptr_t data)
 
 TEST(Core, no_data_transfered)
 {
-    co::coroutine_t f =
+    co::coroutine_ptr f =
         co::create(test_no_data_transfered);
 
     EXPECT_TRUE(!co::is_complete(f));
@@ -36,7 +36,7 @@ TEST(Core, no_data_transfered)
 
 intptr_t test_transfer_data(intptr_t data)
 {
-    co::coroutine_t self = (co::coroutine_t)data;
+    co::coroutine_ptr self = (co::coroutine_ptr)data;
 
     int n = co::yield(self);
     EXPECT_TRUE(n == 1);
@@ -47,7 +47,7 @@ intptr_t test_transfer_data(intptr_t data)
 
 TEST(Core, transfer_data)
 {
-    co::coroutine_t f =
+    co::coroutine_ptr f =
         co::create(test_transfer_data);
 
     co::resume(f, (intptr_t)f);
@@ -59,7 +59,7 @@ TEST(Core, transfer_data)
 
 intptr_t test_unwind_stack(intptr_t data)
 {
-    co::coroutine_t self = (co::coroutine_t)data;
+    co::coroutine_ptr self = (co::coroutine_ptr)data;
     int *ptr = (int*)co::yield(self);
     ZeroGuard guard(ptr);
     co::yield(self);
@@ -68,7 +68,7 @@ intptr_t test_unwind_stack(intptr_t data)
 
 TEST(Core, unwind_stack)
 {
-    co::coroutine_t f = co::create(test_unwind_stack);
+    co::coroutine_ptr f = co::create(test_unwind_stack);
     co::resume(f, (intptr_t)f);
 
     int n = 1;
@@ -87,7 +87,7 @@ intptr_t test_throw_std_exception(intptr_t data)
 
 TEST(Core, throw_std_exception)
 {
-    co::coroutine_t f = co::create(test_throw_std_exception);
+    co::coroutine_ptr f = co::create(test_throw_std_exception);
     EXPECT_THROW(co::resume(f), co::exception_std);
     
     co::destroy(f);
@@ -101,7 +101,7 @@ intptr_t test_throw_unknown_exception(intptr_t data)
 
 TEST(Core, throw_unknown_exception)
 {
-    co::coroutine_t f =
+    co::coroutine_ptr f =
         co::create(test_throw_unknown_exception);
     EXPECT_THROW(co::resume(f), co::exception_unknown);
 
@@ -117,28 +117,27 @@ intptr_t test_no_rethrow(intptr_t data)
 
 TEST(Core, no_rethrow)
 {
-    co::coroutine_t f = co::create(test_no_rethrow);
-    f->rethrow = false;
+    co::coroutine_ptr f = co::create(test_no_rethrow, false);
     EXPECT_NO_THROW(co::resume(f));
     
     co::destroy(f);
 }
 /*
-void echo(coroutine_t self)
+void echo(coroutine_ptr self)
 {
     yield(self, self.data());
 }
 */
 intptr_t echo(intptr_t data)
 {
-    co::coroutine_t self = (co::coroutine_t)data;
+    co::coroutine_ptr self = (co::coroutine_ptr)data;
     data = yield(self);
     while(true) data = yield(self, data);
 }
 
 TEST(Core, echo)
 {
-    co::coroutine_t f = co::create(echo);
+    co::coroutine_ptr f = co::create(echo);
     co::resume(f, (intptr_t)f);
 
     for(int i=0; i<128; ++i)

@@ -5,7 +5,6 @@
 #include <cstring>
 #include <assert.h>
 #include <new>
-#include <exception>
 
 #include <boost/context/all.hpp>
 namespace ctx = boost::context;
@@ -20,7 +19,7 @@ namespace coroutine
         S_RUNNING = 2
     };
 
-    struct coroutine
+    struct coroutine_t
     {
         int status;
         routine_t f;
@@ -34,7 +33,7 @@ namespace coroutine
         bool force_unwind;
         bool rethrow;
 
-        coroutine() :
+        coroutine_t() :
             status(S_COMPLETE), f(NULL), data(0),
             context(NULL), caller(NULL),
             has_std_exception(false),
@@ -47,19 +46,11 @@ namespace coroutine
     };
 
     struct forced_unwind {};
-    struct exception_unknown {};
-    struct exception_std : public std::exception
-    {
-        virtual ~exception_std() throw() {}
-        const char* what() const throw() {
-            return "catch std::exception from coroutine";
-        }
-    };
 
     static
     void routine_starter(intptr_t data)
     {
-        coroutine_t co = reinterpret_cast<coroutine_t>(data);
+        coroutine_ptr co = reinterpret_cast<coroutine_ptr>(data);
         try
         {
             co->data = co->f(co->data);
@@ -82,21 +73,22 @@ namespace coroutine
                            co->data);
     }
         
-    coroutine_t create(routine_t f, int stack)
+    coroutine_ptr create(routine_t f, bool rethrow, int stack)
     {
-        void *p = std::malloc(stack + sizeof(coroutine));
+        void *p = std::malloc(stack + sizeof(coroutine_t));
         char *top = (char *)p + stack;
         // alloc coroutine at top of stack and the stack is growing
         // downward.
-        coroutine_t co = new(top) coroutine;
+        coroutine_ptr co = new(top) coroutine_t;
         co->status = S_SUSPEND;
         co->f = f;
+        co->rethrow = rethrow;
         co->context = ctx::make_fcontext(top, stack,
                                          routine_starter);
         return co;
     }
 
-    void destroy(coroutine_t c)
+    void destroy(coroutine_ptr c)
     {
         if(! is_complete(c) && c->need_unwind)
         {
@@ -107,11 +99,11 @@ namespace coroutine
         // adjust pointer to head of memory
         ctx::fcontext_t *ctx = (ctx::fcontext_t*)c->context;
         void *p = (char*)c - ctx->fc_stack.size;
-        c->~coroutine();
+        c->~coroutine_t();
         std::free(p);
     }
 
-    intptr_t resume(coroutine_t c, intptr_t data)
+    intptr_t resume(coroutine_ptr c, intptr_t data)
     {
         assert(c->status == S_SUSPEND);
         c->status = S_RUNNING;
@@ -131,7 +123,7 @@ namespace coroutine
         return c->data;
     }
 
-    intptr_t yield(coroutine_t c, intptr_t data)
+    intptr_t yield(coroutine_ptr c, intptr_t data)
     {
         assert(c->status == S_RUNNING);
         c->status = S_SUSPEND;
@@ -146,7 +138,7 @@ namespace coroutine
         return c->data;
     }
 
-    bool is_complete(coroutine_t c)
+    bool is_complete(coroutine_ptr c)
     {
         return c->status == S_COMPLETE;
     }

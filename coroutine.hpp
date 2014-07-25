@@ -74,7 +74,7 @@ namespace coroutine
         Coroutine &operator=(const Coroutine&);
 
     private:
-        coroutine_t _impl;
+        coroutine_ptr _impl;
         intptr_t _data;
         routine_t _f;
     };
