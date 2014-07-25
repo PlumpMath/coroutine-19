@@ -27,7 +27,7 @@ intptr_t test_wait_for_rescedule(co::coroutine_t *c,
     co::Sceduler &sceduler = *(co::Sceduler*)data;
     for(int i=0; i<(70); ++i)
     {
-        sceduler.wait_for_rescedule(c);
+        sceduler.wait_for_scedule(c);
     }
     co::yield(c);
     return 0;

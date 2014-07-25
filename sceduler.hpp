@@ -15,7 +15,7 @@ namespace coroutine
         // use for new created coroutines
         void add(coroutine_ptr c);
         // use inner of coroutines
-        void wait_for_rescedule(coroutine_t *c);
+        void wait_for_scedule(coroutine_t *c);
 
         // run some coroutines
         int poll(int max_process_once = 64);
@@ -33,7 +33,7 @@ namespace coroutine
     }
 
     inline
-    void Sceduler::wait_for_rescedule(coroutine_t *c)
+    void Sceduler::wait_for_scedule(coroutine_t *c)
     {
         _queue.push(coroutine_ptr(c));
         coroutine::yield(c);
