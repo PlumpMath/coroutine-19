@@ -26,7 +26,7 @@ namespace coroutine
         intptr_t yield(intptr_t data=0);
 
         bool complete() const {
-            return is_complete(_impl);
+            return is_complete(_impl.get());
         }
 
         static
@@ -87,13 +87,7 @@ namespace coroutine
     }
     
     Coroutine::~Coroutine()
-    {
-        if(_impl)
-        {
-            destroy(_impl);
-            _impl = 0;
-        }
-    }
+    {}
 
     intptr_t Coroutine::resume(intptr_t data)
     {
@@ -105,7 +99,7 @@ namespace coroutine
     intptr_t Coroutine::yield(intptr_t data)
     {
         this->_data = data;
-        ::coroutine::yield(_impl, (intptr_t)this);
+        ::coroutine::yield(_impl.get(), (intptr_t)this);
         return this->_data;
     }
         

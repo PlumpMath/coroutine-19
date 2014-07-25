@@ -32,6 +32,7 @@ namespace coroutine
         bool need_unwind;
         bool force_unwind;
         bool rethrow;
+        int refcount;
 
         coroutine_t() :
             status(S_COMPLETE), f(NULL), data(0),
@@ -41,7 +42,8 @@ namespace coroutine
             unwinded(false),
             need_unwind(true),
             force_unwind(false),
-            rethrow(true)
+            rethrow(true),
+            refcount(0)
             {}
     };
 
@@ -50,7 +52,7 @@ namespace coroutine
     static
     void routine_starter(intptr_t data)
     {
-        coroutine_ptr co = reinterpret_cast<coroutine_ptr>(data);
+        coroutine_t *co(reinterpret_cast<coroutine_t*>(data));
         try
         {
             co->data = co->f(co->data);
@@ -79,7 +81,7 @@ namespace coroutine
         char *top = (char *)p + stack;
         // alloc coroutine at top of stack and the stack is growing
         // downward.
-        coroutine_ptr co = new(top) coroutine_t;
+        coroutine_t *co = new(top) coroutine_t;
         co->status = S_SUSPEND;
         co->f = f;
         co->rethrow = rethrow;
@@ -88,9 +90,9 @@ namespace coroutine
         return co;
     }
 
-    void destroy(coroutine_ptr c)
+    void destroy(coroutine_t *c)
     {
-        if(! is_complete(c) && c->need_unwind)
+        if((! is_complete(c)) && c->need_unwind)
         {
             // unwind the stack
             c->force_unwind = true;
@@ -103,7 +105,7 @@ namespace coroutine
         std::free(p);
     }
 
-    intptr_t resume(coroutine_ptr c, intptr_t data)
+    intptr_t resume(coroutine_t *c, intptr_t data)
     {
         assert(c->status == S_SUSPEND);
         c->status = S_RUNNING;
@@ -123,7 +125,7 @@ namespace coroutine
         return c->data;
     }
 
-    intptr_t yield(coroutine_ptr c, intptr_t data)
+    intptr_t yield(coroutine_t* c, intptr_t data)
     {
         assert(c->status == S_RUNNING);
         c->status = S_SUSPEND;
@@ -138,10 +140,16 @@ namespace coroutine
         return c->data;
     }
 
-    bool is_complete(coroutine_ptr c)
+    bool is_complete(coroutine_t *c)
     {
         return c->status == S_COMPLETE;
     }
+
+    void intrusive_ptr_add_ref(coroutine_t *p)
+    { ++ p->refcount; }
+
+    void intrusive_ptr_release(coroutine_t *p)
+    { if(-- p->refcount == 0) destroy(p); }
 
 }
 
