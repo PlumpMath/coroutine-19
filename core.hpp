@@ -28,8 +28,7 @@ namespace coroutine
     { return resume(c.get(), data); }
     intptr_t yield(coroutine_t *c, intptr_t data=0);
 
-    bool is_complete(coroutine_t *c);
-
+    bool complete(coroutine_t *c);
 
         
     void intrusive_ptr_add_ref(coroutine_t *p);

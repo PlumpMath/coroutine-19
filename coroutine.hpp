@@ -26,7 +26,7 @@ namespace coroutine
         intptr_t yield(intptr_t data=0);
 
         bool complete() const {
-            return is_complete(_impl.get());
+            return coroutine::complete(_impl.get());
         }
 
         static

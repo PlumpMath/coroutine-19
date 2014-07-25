@@ -138,7 +138,7 @@ namespace coroutine
         return c->data;
     }
 
-    bool is_complete(coroutine_t *c)
+    bool complete(coroutine_t *c)
     {
         return c->flags & flag_complete;
     }

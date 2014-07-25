@@ -26,11 +26,11 @@ TEST(Core, no_data_transfered)
     co::coroutine_ptr f =
         co::create(test_no_data_transfered);
 
-    EXPECT_TRUE(!co::is_complete(f.get()));
+    EXPECT_TRUE(!co::complete(f.get()));
 
     co::resume(f);
 
-    EXPECT_TRUE(co::is_complete(f.get()));
+    EXPECT_TRUE(co::complete(f.get()));
 }
 
 intptr_t test_transfer_data(co::coroutine_t *self, intptr_t data)
