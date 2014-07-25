@@ -14,8 +14,13 @@ namespace coroutine
     typedef coroutine_t *self_ptr;
     typedef intptr_t (*routine_t)(self_ptr, intptr_t);
 
-    coroutine_ptr create(routine_t f, bool rethrow=true, int stack=64*1024);
-    void destroy(coroutine_t *c);
+    coroutine_ptr create(routine_t f,
+                         bool rethrow=true,
+                         bool unwind=true,
+                         int stacksize=64*1024);
+    inline
+    coroutine_ptr create(routine_t f, int stacksize)
+    { return create(f, true, true, stacksize); }
 
     intptr_t resume(coroutine_t *c, intptr_t data=0);
     inline

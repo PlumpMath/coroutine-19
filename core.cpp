@@ -68,10 +68,10 @@ namespace coroutine
                            co->data);
     }
         
-    coroutine_ptr create(routine_t f, bool rethrow, bool unwind, int stack)
+    coroutine_ptr create(routine_t f, bool rethrow, bool unwind, int stacksize)
     {
-        void *p = std::malloc(stack + sizeof(coroutine_t));
-        char *top = (char *)p + stack;
+        void *p = std::malloc(stacksize + sizeof(coroutine_t));
+        char *top = (char *)p + stacksize;
         // alloc coroutine at top of stack and the stack is growing
         // downward.
         coroutine_ptr co(new(top) coroutine_t);
@@ -79,7 +79,7 @@ namespace coroutine
         if(unwind) co->flags |= flag_unwind;
         if(rethrow) co->flags |= flag_rethrow;
         co->f = f;
-        co->context = ctx::make_fcontext(top, stack,
+        co->context = ctx::make_fcontext(top, stacksize,
                                          routine_starter);
         return co;
     }
