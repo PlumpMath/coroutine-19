@@ -17,6 +17,11 @@ namespace coroutine
         // 成功，则first是分发回来的数据。
         std::pair<intptr_t, bool>
         wait_for(T id, coroutine_t *co);
+
+        // 用于协程内部主动取消等待。适用于等待时间超时的情况（结合定
+        // 时器使用）。取消时必须带上自己，以免误取消别的协程。返回取
+        // 消的协程个数。
+        std::size_t cancel(T id, coroutine_t *co);
         
         // 分发一个ID，将激活等待该ID的协程。返回激活的协程数。
         std::size_t dispatch(T id, intptr_t data);
@@ -38,6 +43,19 @@ namespace coroutine
         if(ret.second)
             ret.first = yield(co);
         return ret;
+    }
+
+    template<typename T>
+    std::size_t
+    Dispatcher<T>::cancel(T id, coroutine_t *co)
+    {
+        typename map_type::iterator it = _waitings.find(id);
+        if(it != _waitings.end() && it->second.get() == co)
+        {
+            _waitings.erase(it);
+            return 1;
+        }
+        return 0;
     }
 
     template<typename T>

@@ -69,6 +69,24 @@ intptr_t wait_for_tiger_with_guard(co::coroutine_t *self,
     return 0;
 }
 
+intptr_t cancel_wait(co::coroutine_t *self, intptr_t data)
+{
+    StringDispatcher &d = *(StringDispatcher*)data;
+    std::pair<intptr_t, bool> ret = d.wait_for("tiger", self);
+    EXPECT_TRUE(ret.second);
+    EXPECT_TRUE(ret.first == -1);
+
+    std::size_t n = d.cancel("tiger", self);
+    EXPECT_TRUE(n == 1);
+
+    n = d.cancel("tiger", self);
+    EXPECT_TRUE(n == 0);
+
+    while(true) yield(self);
+
+    return 0;
+}
+
 TEST(Dispatcher, dispatch_success)
 {
 
@@ -153,4 +171,22 @@ TEST(Dispatcher, coroutine_auto_destroy)
     n = d.dispatch("tiger", (intptr_t)&data);
     EXPECT_TRUE(n == 1);
     EXPECT_EQ(data, "");
+}
+
+TEST(Dispatcher, cancel)
+{
+
+    StringDispatcher d;
+
+    co::coroutine_ptr c = co::create(cancel_wait);
+    co::resume(c, (intptr_t)&d);
+
+    // it's waiting, awake it then it will cancel
+    co::resume(c, -1);
+
+    // here is no waiter already
+    std::size_t n;
+    std::string data = "this is a tiger.";
+    n = d.dispatch("tiger", (intptr_t)&data);
+    EXPECT_TRUE(n == 0);
 }
