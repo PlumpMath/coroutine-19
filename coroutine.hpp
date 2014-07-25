@@ -30,7 +30,7 @@ namespace coroutine
         }
 
         static
-        intptr_t wrapper(intptr_t data) {
+        intptr_t wrapper(coroutine_t *, intptr_t data) {
             Coroutine *self =
                 reinterpret_cast<Coroutine*>(data);
             self->_data = self->_f(*self, self->_data);

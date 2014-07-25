@@ -55,7 +55,7 @@ namespace coroutine
         coroutine_t *co(reinterpret_cast<coroutine_t*>(data));
         try
         {
-            co->data = co->f(co->data);
+            co->data = co->f(co, co->data);
         }
         catch (const forced_unwind &)
         {

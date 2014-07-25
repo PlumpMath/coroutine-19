@@ -10,7 +10,7 @@ namespace coroutine
 {
     struct coroutine_t;
 
-    typedef intptr_t (*routine_t)(intptr_t);
+    typedef intptr_t (*routine_t)(coroutine_t *, intptr_t);
     typedef boost::intrusive_ptr<coroutine_t> coroutine_ptr;
 
     void intrusive_ptr_add_ref(coroutine_t *p);
