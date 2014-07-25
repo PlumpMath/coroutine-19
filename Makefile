@@ -12,16 +12,13 @@ AR=ar
 %.o: %.cpp
 	$(CXX) -c -o $@ $(CPPFLAGS) $<
 
-all: main lib
-
-main:main.o core.o
-	$(CXX) -o $@ $^ $(LDFLAGS)
+all: lib
 
 # ------ lib ------
 
 lib: libcoroutine.a
 
-libcoroutine.a: core.o
+libcoroutine.a: core.o sceduler.o
 	ar rvc libcoroutine.a $^
 
 # ------ unit test ------
@@ -29,7 +26,7 @@ libcoroutine.a: core.o
 test: lib unittest
 	./unittest
 
-unittest: core_test.o coroutine_test.o
+unittest: core_test.o coroutine_test.o sceduler_test.o
 	$(CXX) -o $@ $^ $(LDFLAGS) -lgtest -lgtest_main -lcoroutine
 
 clean:
