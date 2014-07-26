@@ -1,6 +1,6 @@
 
 CPPFLAGS=-Wall -I. -ggdb
-LDFLAGS=-lboost_context -L. 
+LDFLAGS=-lboost_context -levent -L. 
 
 CC=gcc
 CXX=g++
@@ -18,7 +18,7 @@ all: lib
 
 lib: libcoroutine.a
 
-libcoroutine.a: core.o sceduler.o
+libcoroutine.a: core.o sceduler.o event.o
 	ar rvc libcoroutine.a $^
 
 # ------ unit test ------
@@ -26,7 +26,7 @@ libcoroutine.a: core.o sceduler.o
 test: lib unittest
 	./unittest
 
-unittest: core_test.o coroutine_test.o sceduler_test.o dispatcher_test.o
+unittest: core_test.o coroutine_test.o sceduler_test.o dispatcher_test.o event_test.o
 	$(CXX) -o $@ $^ $(LDFLAGS) -lgtest -lgtest_main -lcoroutine
 
 clean:
