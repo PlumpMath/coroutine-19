@@ -3,7 +3,7 @@
 
 #include <core.hpp>
 
-#include <map>
+#include <unordered_map>
 
 namespace coroutine
 {
@@ -27,7 +27,7 @@ namespace coroutine
         std::size_t dispatch(T id, intptr_t data);
 
     private:
-        typedef std::map<T, coroutine_ptr> map_type;
+        typedef std::unordered_map<T, coroutine_ptr> map_type;
         map_type _waitings;
     };
 
