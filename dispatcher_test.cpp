@@ -4,7 +4,11 @@
 
 #include <gtest/gtest.h>
 
+#include <event2/event.h>
+
 namespace co = coroutine;
+
+struct event_base *base = event_base_new();
 
 typedef co::Dispatcher<long> LongDispatcher;
 typedef co::Dispatcher<std::string> StringDispatcher;
@@ -69,18 +73,14 @@ intptr_t wait_for_tiger_with_guard(co::coroutine_t *self,
     return 0;
 }
 
-intptr_t cancel_wait(co::coroutine_t *self, intptr_t data)
+intptr_t wait_for_1s_timeout(co::coroutine_t *self,
+                             intptr_t data)
 {
     StringDispatcher &d = *(StringDispatcher*)data;
-    std::pair<intptr_t, bool> ret = d.wait_for("tiger", self);
+    std::pair<intptr_t, bool> ret =
+        d.wait_for("tiger", self, 1);
     EXPECT_TRUE(ret.second);
-    EXPECT_TRUE(ret.first == -1);
-
-    std::size_t n = d.cancel("tiger", self);
-    EXPECT_TRUE(n == 1);
-
-    n = d.cancel("tiger", self);
-    EXPECT_TRUE(n == 0);
+    EXPECT_EQ(ret.first, 0);
 
     while(true) yield(self);
 
@@ -90,7 +90,7 @@ intptr_t cancel_wait(co::coroutine_t *self, intptr_t data)
 TEST(Dispatcher, dispatch_success)
 {
 
-    StringDispatcher d;
+    StringDispatcher d(base);
 
     {
         co::resume(co::create(wait_for_cat),
@@ -121,7 +121,7 @@ TEST(Dispatcher, dispatch_success)
 TEST(Dispatcher, wait_for_duplicated)
 {
 
-    StringDispatcher d;
+    StringDispatcher d(base);
 
     {
         co::resume(co::create(wait_for_dog),
@@ -143,7 +143,7 @@ TEST(Dispatcher, wait_for_duplicated)
 TEST(Dispatcher, dispatch_no_waiters)
 {
 
-    StringDispatcher d;
+    StringDispatcher d(base);
 
     {
         co::resume(co::create(wait_for_dog),
@@ -159,7 +159,7 @@ TEST(Dispatcher, dispatch_no_waiters)
 TEST(Dispatcher, coroutine_auto_destroy)
 {
 
-    StringDispatcher d;
+    StringDispatcher d(base);
 
     {
         co::resume(co::create(wait_for_tiger_with_guard),
@@ -173,16 +173,15 @@ TEST(Dispatcher, coroutine_auto_destroy)
     EXPECT_EQ(data, "");
 }
 
-TEST(Dispatcher, cancel)
+TEST(Dispatcher, wait_for_1s_timeout)
 {
 
-    StringDispatcher d;
+    StringDispatcher d(base);
 
-    co::coroutine_ptr c = co::create(cancel_wait);
+    co::coroutine_ptr c = co::create(wait_for_1s_timeout);
     co::resume(c, (intptr_t)&d);
 
-    // it's waiting, awake it then it will cancel
-    co::resume(c, -1);
+    event_base_dispatch(base);
 
     // here is no waiter already
     std::size_t n;
@@ -190,3 +189,6 @@ TEST(Dispatcher, cancel)
     n = d.dispatch("tiger", (intptr_t)&data);
     EXPECT_TRUE(n == 0);
 }
+
+
+
