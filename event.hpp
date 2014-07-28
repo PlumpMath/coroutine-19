@@ -16,17 +16,16 @@ namespace coroutine
 
         void poll();
 
-        void sleep(coroutine_t *c, int sec)
+        void sleep(coroutine_t *c, long sec)
             { sleep(c, sec, 0); }
-        void usleep(coroutine_t *c, int usec)
+        void usleep(coroutine_t *c, long usec)
             { sleep(c, 0, usec); }
 
     protected:
-        void sleep(coroutine_t *c, int sec, int usec);
+        void sleep(coroutine_t *c, long sec, long usec);
 
     private:
         struct event_base *_base;
-        
     };
 
 }

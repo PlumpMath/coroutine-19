@@ -26,18 +26,21 @@ namespace coroutine
     }
 
     static
-    void timeout_cb(evutil_socket_t fd, short event, void *arg)
+    void timeout_callback(evutil_socket_t fd,
+                          short event,
+                          void *arg)
     {
         coroutine_t *c = (coroutine_t*)arg;
         resume(c);
     }
 
-    void Event::sleep(coroutine_t *c, int sec, int usec)
+    void Event::sleep(coroutine_t *c, long sec, long usec)
     {
         struct event timeout;
         struct timeval tv;
 
-        evtimer_assign(&timeout, _base, timeout_cb, (void*)c);
+        evtimer_assign(&timeout, _base,
+                       timeout_callback, (void*)c);
                        
         evutil_timerclear(&tv);
         tv.tv_sec = sec;
@@ -47,4 +50,5 @@ namespace coroutine
         coroutine_ptr hold(c);  // prevent destroy
         yield(c);
     }
+
 }
