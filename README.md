@@ -23,5 +23,9 @@
 2. 栈使用mmap分配，并设置mprotect防止栈溢出
 3. 支持使用函数对象，这样方便在对象中存储更多的信息，避免要传入多个参数
    时的麻烦。
+4. 使用std::shared\_ptr 和 std::weak\_ptr替换boost::intrusive\_ptr。
+   （取消，weak\_ptr不能直接获得指针，为使用带来麻烦）
+5. 使用std::function<intptr(coroutine_ptr, intptr)>替换原始函数类型，
+   以支持函数对象
 
 
