@@ -153,7 +153,7 @@ namespace localfs
 
     inline
     file_t open(const char *p_path,
-                mode_t p_mode = MT_O_RDONLY,
+                mode_t p_mode,
                 std::size_t /*replica_number*/)
     {
         return open(p_path, p_mode);
@@ -168,7 +168,7 @@ namespace localfs
 
     inline
     file_t create(const char *p_path,
-                  std::size_t /*replica_number*/= 0)
+                  std::size_t /*replica_number*/)
     {
         return create(p_path);
     }

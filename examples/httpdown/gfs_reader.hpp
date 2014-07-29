@@ -3,10 +3,13 @@
 
 #include <tuple>
 #include <thread>
+#include <vector>
 
-#include <circular_array_queue.hpp>
+#include <appframe/circular_array_queue.hpp>
 
 #include <coroutine-cpp/dispatcher.hpp>
+
+namespace co = coroutine;
 
 class GfsReader
 {
@@ -14,16 +17,16 @@ public:
     typedef std::vector<char> dataarray_t;
 
 public:
-    GfsReader();
+    GfsReader(struct event_base *base);
     ~GfsReader();
 
     dataarray_t *
-    request_read_file(uint64_t id,
-                      co::coroutine_t *c,
-                      int timeout,
-                      const std::string &filename,
-                      uint64_t offset,
-                      std::size_t length);
+    read(uint64_t id,
+	 co::coroutine_t *c,
+	 int timeout,
+	 const std::string &filename,
+	 std::size_t length,
+	 uint64_t offset);
 
     int poll();
 

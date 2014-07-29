@@ -1,6 +1,6 @@
 
-CPPFLAGS=-Wall -I../../.. -ggdb
-LDFLAGS=-lboost_context -levent -L../../ -lcoroutine
+CPPFLAGS=-Wall -I../../.. -ggdb -std=c++0x -Wno-deprecated
+LDFLAGS=-lcoroutine -lboost_context -levent -lrt -L../../ -lappframe -lgfe -lgcexsocket
 
 CC=gcc
 CXX=g++
