@@ -147,6 +147,7 @@ void echo(coroutine_ptr self)
 intptr_t echo(co::coroutine_t *self, intptr_t data)
 {
     while(true) data = yield(self, data);
+    return 0;
 }
 
 TEST(Core, echo)

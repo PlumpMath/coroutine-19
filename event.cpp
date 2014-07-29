@@ -48,7 +48,10 @@ namespace coroutine
         event_add(&timeout, &tv);
 
         coroutine_ptr hold(c);  // prevent destroy
-        yield(c);
+	do {
+	  yield(c);
+	} while(false);
+	(void)hold;
     }
 
 }

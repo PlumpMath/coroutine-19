@@ -1,7 +1,7 @@
 #ifndef _COROUTINE_DISPATCHER_HPP_
 #define _COROUTINE_DISPATCHER_HPP_
 
-#include <core.hpp>
+#include "core.hpp"
 
 #include <unordered_map>
 
@@ -61,7 +61,7 @@ namespace coroutine
     struct callback_arg
     {
         Dispatcher<T> *dispatcher;
-        coroutine_t *co;
+        coroutine_ptr co;
         T *id;
     };
 
@@ -87,7 +87,7 @@ namespace coroutine
     Dispatcher<T>::wait_for(T id, coroutine_t *co,
                             long sec, long usec)
     {
-        value_type empty(coroutine_ptr(), NULL);
+      value_type empty;
         std::pair<typename map_type::iterator, bool> rv
             = _waitings.insert(
                 typename map_type::value_type(id, empty)
@@ -97,7 +97,7 @@ namespace coroutine
 
         struct event *timeout = NULL;
 
-        callback_arg<T> arg = { this, co, &id };
+        callback_arg<T> arg = { this, coroutine_ptr(co), &id };
         
         if(sec != 0 || usec != 0)
         {

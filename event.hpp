@@ -2,7 +2,7 @@
 #ifndef _COROUTINE_EVENT_HPP_
 #define _COROUTINE_EVENT_HPP_
 
-#include <core.hpp>
+#include "core.hpp"
 
 #include <event2/event.h>
 

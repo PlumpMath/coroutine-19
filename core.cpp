@@ -74,15 +74,18 @@ namespace coroutine
         char *top = (char *)p + stacksize;
         // alloc coroutine at top of stack and the stack is growing
         // downward.
-        coroutine_ptr co(new(top) coroutine_t);
+        coroutine_t *co(new(top) coroutine_t);
         co->flags |= flag_suspend;
         if(unwind) co->flags |= flag_unwind;
         if(rethrow) co->flags |= flag_rethrow;
         co->f = f;
         co->context = ctx::make_fcontext(top, stacksize,
                                          routine_starter);
-        return co;
+        return coroutine_ptr(co);
     }
+
+    static
+    intptr_t resume(coroutine_t *c, intptr_t data=0);
 
     void destroy(coroutine_t *c)
     {
@@ -99,6 +102,7 @@ namespace coroutine
         std::free(p);
     }
 
+    static
     intptr_t resume(coroutine_t *c, intptr_t data)
     {
         assert((c->flags & flag_suspend) &&
@@ -120,6 +124,13 @@ namespace coroutine
             throw exception_unknown();
             
         return c->data;
+    }
+
+    intptr_t resume(const coroutine_ptr &f, intptr_t data)
+    {
+        // always hold the coroutine before jump into
+        coroutine_ptr c(f); 
+	return resume(c.get(), data);
     }
 
     intptr_t yield(coroutine_t* c, intptr_t data)
@@ -144,10 +155,16 @@ namespace coroutine
     }
 
     void intrusive_ptr_add_ref(coroutine_t *p)
-    { ++ p->refcount; }
+    {
+      ++ p->refcount;
+    }
 
     void intrusive_ptr_release(coroutine_t *p)
-    { if(-- p->refcount == 0) destroy(p); }
+    {
+        -- p->refcount;
+        if(p->refcount == 0)
+	    destroy(p);
+    }
 
 }
 

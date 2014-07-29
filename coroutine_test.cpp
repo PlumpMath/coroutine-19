@@ -12,6 +12,7 @@ intptr_t echo_twice(coroutine::Coroutine &self, intptr_t data)
 intptr_t echo_forever(coroutine::Coroutine &self, intptr_t data)
 {
     while(true) data = self.yield(data);
+    return 0;
 }
 
 TEST(Coroutine, normal)

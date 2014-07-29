@@ -11,6 +11,7 @@ intptr_t test_add_new_coroutine(co::coroutine_t *c, intptr_t)
         // value from scedule should be 0
         EXPECT_TRUE(n == 0);
     }
+    return 0;
 }
 
 TEST(Sceduler, add_new_coroutine)

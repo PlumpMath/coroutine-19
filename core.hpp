@@ -22,10 +22,8 @@ namespace coroutine
     coroutine_ptr create(routine_t f, int stacksize)
     { return create(f, true, true, stacksize); }
 
-    intptr_t resume(coroutine_t *c, intptr_t data=0);
-    inline
-    intptr_t resume(coroutine_ptr c, intptr_t data=0)
-    { return resume(c.get(), data); }
+    intptr_t resume(const coroutine_ptr &c, intptr_t data=0);
+
     intptr_t yield(coroutine_t *c, intptr_t data=0);
 
     bool complete(coroutine_t *c);
