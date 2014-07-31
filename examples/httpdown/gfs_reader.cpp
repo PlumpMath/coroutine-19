@@ -1,6 +1,7 @@
 #include "gfs_reader.hpp"
 
 #include <algorithm>
+#include <errno.h>
 
 //#include <gfs.hpp>
 #include "localfs.hpp"
@@ -21,7 +22,7 @@ GfsReader::~GfsReader()
     stop();
 }
 
-GfsReader::dataarray_t *
+char *
 GfsReader::read(uint64_t id,
 		co::coroutine_t *c,
 		int timeout,
@@ -39,7 +40,7 @@ GfsReader::read(uint64_t id,
     bool ok;
     std::tie(d, ok) = _dispatcher.wait_for(id, c, timeout);
     assert(ok);
-    GfsReader::dataarray_t *da = (GfsReader::dataarray_t*)d;
+    char *da = (char*)d;
 
     return da;
 }
@@ -50,7 +51,7 @@ int GfsReader::poll()
     std::size_t n = 0;
     std::size_t max_once = (std::min)(_outq.size(),
 				      max_process_once);
-    while(!_outq.empty() && (++n < max_once))
+    while(!_outq.empty() && (n++ < max_once))
     {
         RespItem &item = _outq.front();
         _dispatcher.dispatch(std::get<0>(item),
@@ -63,23 +64,26 @@ int GfsReader::poll()
 }
 
 static
-GfsReader::dataarray_t *read_file(const char *filename,
-				  std::size_t length,
-				  uint64_t offset)
+char *read_file(const char *filename,
+		std::size_t length,
+		uint64_t offset)
                      
 {
     fs::file_t fd = fs::open(filename);
-    GfsReader::dataarray_t *data = new GfsReader::dataarray_t();
-    data->reserve(length);
-    ssize_t rv = fs::preadn(fd, &(*data)[0], length, offset);
-    assert((size_t)rv == length);
-    data->resize(length);
+    char *data = new char[length];
+    ssize_t rv = fs::preadn(fd, data, length, offset);
+    if((size_t)rv < length)
+      {
+	printf("read error, errno:%d, rv:%ld",
+	       fs::get_errno(), rv);
+	assert(false);
+      }
     return data;
 }
 
-void GfsReader::release_data_array(dataarray_t *da)
+void GfsReader::release_data_array(char *da)
 {
-    delete da;
+    delete [] da;
 }
 
 void GfsReader::thread_fun()
@@ -89,9 +93,9 @@ void GfsReader::thread_fun()
         while(_inq.empty()) usleep(20);
 
         ReqItem &req = _inq.front();
-        dataarray_t *data = read_file(std::get<1>(req).c_str(),
-                                      std::get<2>(req),
-                                      std::get<3>(req));
+        char *data = read_file(std::get<1>(req).c_str(),
+			       std::get<2>(req),
+			       std::get<3>(req));
 	_inq.pop();
 	
         RespItem resp = std::make_tuple(std::get<0>(req),

@@ -14,13 +14,10 @@ namespace co = coroutine;
 class GfsReader
 {
 public:
-    typedef std::vector<char> dataarray_t;
-
-public:
     GfsReader(struct event_base *base);
     ~GfsReader();
 
-    dataarray_t *
+    char *
     read(uint64_t id,
 	 co::coroutine_t *c,
 	 int timeout,
@@ -30,7 +27,7 @@ public:
 
     int poll();
 
-    void release_data_array(dataarray_t *da);
+    void release_data_array(char *da);
 private:
     void thread_fun();
     void start();
@@ -43,7 +40,7 @@ private:
                        > ReqItem;
 
     typedef std::tuple<uint64_t,    // id
-                       dataarray_t*
+                       char*
                        > RespItem;
 
     CircularArrayQueue<ReqItem> _inq;
