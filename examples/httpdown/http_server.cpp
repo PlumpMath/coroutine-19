@@ -180,21 +180,13 @@ intptr_t process_http(co::coroutine_t *self, intptr_t data)
             std::size_t nsend = (std::min)(send_block_size,
 					   left_size);
 
-	    long total_sleep=0;
-	    bool show = false;
-	    while(true)
+
+	    std::size_t free_blocks = allocator->free_blocks();
+	    if(free_blocks < 10)
 	      {
-		std::size_t memleft = (allocator->free_blocks() *
-				       allocator->size());
-		if(memleft > nsend * 10)
-		  break;
-		if(!show) printf("buf is almost full:%ld, wait flush\n",
-				 memleft);
-		show = true;
-		event->sleep(self, 1);
-		total_sleep += 1;
+		  printf("WARN allocator is used out,"
+			 " free_blocks:%ld\n",free_blocks);
 	      }
-	    if(show) printf("buf is flush out, continue out_put, sleep:%ld\n",total_sleep);
 
 	    CONN_CHECK_OR_RETURN(connid);
             pconn->out_put(pdata, nsend, HTTP::APPEND_CONTENT);
@@ -209,7 +201,20 @@ intptr_t process_http(co::coroutine_t *self, intptr_t data)
 		   reply.cur_emit_data_num(),
 		   pconn->written_bytes());
 
+	    // speed control
 	    event->usleep(self, n_usec);
+
+	    // cache control, 防止接收慢还一直发
+	    bool show = false;
+	    while(true) 
+	      {
+		CONN_CHECK_OR_RETURN(connid);
+		if(reply.body_buff_length() < (long)send_block_size * 8)
+		  break;
+		if(!show) printf("slow down, buf too big:%ld",
+				 (long)reply.body_buff_length());
+		event->usleep(self, n_usec);
+	      }
         }
 
 	printf("conn %ld block sent, nread=%zd, remain=%zd\n",
