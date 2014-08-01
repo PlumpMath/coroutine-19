@@ -3,10 +3,13 @@
 #include <algorithm>
 #include <errno.h>
 
-//#include <gfs.hpp>
+#ifndef _FS_USE_GFS_
+#include "gfs.hpp"
+namespace fs = gfs;
+#else
 #include "localfs.hpp"
-
 namespace fs = localfs;
+#endif
 
 GfsReader::GfsReader(struct event_base *base)
     : _inq(10240),
