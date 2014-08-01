@@ -72,6 +72,7 @@ char *read_file(const char *filename,
     fs::file_t fd = fs::open(filename);
     char *data = new char[length];
     ssize_t rv = fs::preadn(fd, data, length, offset);
+    fs::close(fd);
     if((size_t)rv < length)
       {
 	printf("read error, errno:%d, rv:%ld",
