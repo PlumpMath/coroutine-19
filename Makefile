@@ -1,6 +1,7 @@
 
 CPPFLAGS=-Wall -I. -ggdb -std=c++0x
-LDFLAGS=-lboost_context -levent -lrt -L.
+LIBRT=$(shell uname|gawk '{if($$1=="Linux"){print "-lrt";exit;}}')
+LDFLAGS=-lboost_context -levent $(LIBRT) -L.
 
 CC=gcc
 CXX=g++
