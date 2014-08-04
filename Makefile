@@ -26,7 +26,7 @@ libcoroutine.a: core.o sceduler.o event.o
 test: lib unittest
 	./unittest
 
-unittest: core_test.o coroutine_test.o sceduler_test.o dispatcher_test.o event_test.o
+unittest: core_test.o sceduler_test.o dispatcher_test.o event_test.o
 	$(CXX) -o $@ $^ -lcoroutine $(LDFLAGS) -lgtest -lgtest_main
 
 clean:
