@@ -57,8 +57,9 @@ int GfsReader::poll()
     while(!_outq.empty() && (n++ < max_once))
     {
         RespItem &item = _outq.front();
-        _dispatcher.notify(std::get<0>(item),
-                           (intptr_t)std::get<1>(item));
+        n = _dispatcher.notify(std::get<0>(item),
+                               (intptr_t)std::get<1>(item));
+        assert(n == 1);
 
         _outq.pop();
     }
