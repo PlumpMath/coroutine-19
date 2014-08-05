@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 
     struct event_base *base = event_base_new();
     GfsReader *reader = new GfsReader();
-    HttpServer *server = new HttpServer(8080, reader, base);
+    HttpServer *server = new HttpServer(port, reader, base);
 
     //timeval tv1,tv2,tv3,tv4;
     while(true)
