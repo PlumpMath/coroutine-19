@@ -14,7 +14,7 @@ namespace co = coroutine;
 class GfsReader
 {
 public:
-    GfsReader(struct event_base *base);
+    GfsReader();
     ~GfsReader();
 
     char *

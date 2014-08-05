@@ -5,8 +5,6 @@
 
 #include <gce/gfe/ihttpprocessor.hpp>
 
-#include <coroutine-cpp/event.hpp>
-
 namespace co = coroutine;
 
 class FixedSizeAllocator;
@@ -17,7 +15,9 @@ class HttpServer : public IHttpProcessor
 {
 public:
     explicit
-    HttpServer(int port, GfsReader *reader);
+    HttpServer(int port,
+               GfsReader *reader,
+               struct event_base *evbase);
     ~HttpServer();
 
     int poll();
@@ -29,11 +29,10 @@ public:
 private:
     typedef std::unique_ptr<FixedSizeAllocator> allocator_ptr;
     typedef std::unique_ptr<HttpReactor> reactor_ptr;
-    typedef std::unique_ptr<co::Event> event_ptr;
     allocator_ptr _allocator;
     reactor_ptr _reactor;
-    event_ptr _event;
     GfsReader *_reader;
+    struct event_base *_evbase;
 };
 
 

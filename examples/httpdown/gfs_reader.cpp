@@ -11,10 +11,10 @@ namespace fs = gfs;
 namespace fs = localfs;
 #endif
 
-GfsReader::GfsReader(struct event_base *base)
+GfsReader::GfsReader()
     : _inq(10240),
       _outq(1024),
-      _dispatcher(base),
+      _dispatcher(),
       _stop(false)
 {
     start();

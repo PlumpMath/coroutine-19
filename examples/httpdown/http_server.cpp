@@ -7,6 +7,8 @@
 #include <gce/gfe/http_reactor.h>
 #include <appframe/fixed_size_allocator.h>
 
+#include <coroutine-cpp/event.hpp>
+
 //#include "gfs.hpp"
 #include "localfs.hpp"
 namespace fs = localfs;
@@ -14,13 +16,15 @@ namespace fs = localfs;
 #include "gfs_reader.hpp"
 
 typedef std::tuple<long,		// connid
-		   HttpReactor*,
+                   HttpReactor*,
                    GfsReader*,
-		   co::Event*,
-		   FixedSizeAllocator*> arg_t;
+                   FixedSizeAllocator*> arg_t;
 
-HttpServer::HttpServer(int port, GfsReader *reader)
+HttpServer::HttpServer(int port,
+                       GfsReader *reader,
+                       struct event_base *evbase)
     : _reader(reader)
+    , _evbase(evbase)
 {
     const int page_size = 4*1024;
     const int mem_size = 40*1024*1024;
@@ -35,19 +39,17 @@ HttpServer::HttpServer(int port, GfsReader *reader)
     const long select_timeout = 0; // cause epoll_wait return immediately
     _reactor = reactor_ptr(new HttpReactor(_allocator.get(),
                                            this, port,
-					   HttpReactor::DEFAULT_PORT_BAK, 
-					   HttpReactor::DEFAULT_MAX_CONNECTIONS,
-					   HttpReactor::DEFAULT_ACCECPT_ONCE,
-					   HttpReactor::DEFAULT_BACKLOG,
-					   10,
-					   10,
-					   30,
-					   NULL,
-					   select_timeout));
+                                           HttpReactor::DEFAULT_PORT_BAK, 
+                                           HttpReactor::DEFAULT_MAX_CONNECTIONS,
+                                           HttpReactor::DEFAULT_ACCECPT_ONCE,
+                                           HttpReactor::DEFAULT_BACKLOG,
+                                           10,
+                                           10,
+                                           30,
+                                           NULL,
+                                           select_timeout));
     if(_reactor->init(server_name) < 0)
         throw std::runtime_error("init reactor fail");
-
-    _event = event_ptr(new co::Event());
 }
 
 HttpServer::~HttpServer()
@@ -56,10 +58,7 @@ HttpServer::~HttpServer()
 
 int HttpServer::poll()
 {
-  _event->poll();
-  int n =_reactor->poll();
-
-  return n;
+    return _reactor->poll();
 }
 
 void HttpServer::accept(HttpConnection &conn)
@@ -70,7 +69,7 @@ void HttpServer::accept(HttpConnection &conn)
 
 void HttpServer::remove(HttpConnection &conn)
 {
-  printf("remove conn %ld\n", conn.id());
+    printf("remove conn %ld\n", conn.id());
 }
 
 static
@@ -81,20 +80,19 @@ void HttpServer::process_input(HttpConnection &conn,
 {
     co::coroutine_ptr f = co::create(process_http);
     arg_t arg = std::make_tuple(conn.id(),
-				_reactor.get(),
-				_reader,
-				_event.get(),
-				_allocator.get());
+                                _reactor.get(),
+                                _reader,
+                                _allocator.get());
     co::resume(f, (intptr_t)&arg);
 }
 
 struct DataGuard
 {
-  DataGuard(char *data, GfsReader *reader)
-    : _data(data), _reader(reader) {}
+    DataGuard(char *data, GfsReader *reader)
+        : _data(data), _reader(reader) {}
     ~DataGuard() { _reader->release_data_array(_data); }
-  char *_data;
-  GfsReader *_reader;
+    char *_data;
+    GfsReader *_reader;
 };
 
 #define CONN_CHECK_OR_RETURN(id) do { if(reactor->connection(id)==NULL) return 0; } while(false)
@@ -107,9 +105,8 @@ intptr_t process_http(co::coroutine_t *self, intptr_t data)
     long connid;
     HttpReactor *reactor;
     GfsReader *reader;
-    co::Event *event;
     FixedSizeAllocator *allocator;
-    std::tie(connid, reactor, reader, event, allocator) = arg;
+    std::tie(connid, reactor, reader, allocator) = arg;
     
     const uint64_t id = connid;
     CONN_CHECK_OR_RETURN(connid);
@@ -135,11 +132,10 @@ intptr_t process_http(co::coroutine_t *self, intptr_t data)
     HttpReply &reply = pconn->get_reply();
     reply.set_reply_content_length(length);
     pconn->out_put(0, 0, HTTP::OK);
-    //event->usleep(self, 10);	// send header out
     std::size_t buflen = (unsigned int)reply.body_buff_length();
     bool empty = reply.body_buff_empty();
     printf("conn %ld header sent, buflen=%zd, empty=%d\n",
-	   connid, buflen, (int)empty);
+           connid, buflen, (int)empty);
 
     // 3. read and write data
     std::size_t remain = length;
@@ -151,20 +147,20 @@ intptr_t process_http(co::coroutine_t *self, intptr_t data)
             id, self, 30,
             filename, nread, offset);
 
-	DataGuard guard(data, reader);
+        DataGuard guard(data, reader);
 
-	std::size_t buflen = (unsigned int)reply.body_buff_length();
-	bool empty = reply.body_buff_empty();
-	printf("conn %ld data read, buflen=%zd, empty=%d\n",connid,
-	   buflen, (int)empty);
+        std::size_t buflen = (unsigned int)reply.body_buff_length();
+        bool empty = reply.body_buff_empty();
+        printf("conn %ld data read, buflen=%zd, empty=%d\n",connid,
+               buflen, (int)empty);
 
         if(data == NULL)
         {
             // timeout
-	  printf("conn %ld empty data, nread=%zd, remain=%zd\n",
-		 connid, nread, remain);
-	  CONN_CHECK_OR_RETURN(connid);
-	  pconn->close();
+            printf("conn %ld empty data, nread=%zd, remain=%zd\n",
+                   connid, nread, remain);
+            CONN_CHECK_OR_RETURN(connid);
+            pconn->close();
             return 0;
         }
 
@@ -178,47 +174,47 @@ intptr_t process_http(co::coroutine_t *self, intptr_t data)
         {
             const std::size_t left_size = pend - pdata;
             std::size_t nsend = (std::min)(send_block_size,
-					   left_size);
+                                           left_size);
 
 
-	    std::size_t free_blocks = allocator->free_blocks();
-	    if(free_blocks < 10)
-	      {
-		  printf("WARN allocator is used out,"
-			 " free_blocks:%ld\n",free_blocks);
-	      }
+            std::size_t free_blocks = allocator->free_blocks();
+            if(free_blocks < 10)
+            {
+                printf("WARN allocator is used out,"
+                       " free_blocks:%ld\n",free_blocks);
+            }
 
-	    CONN_CHECK_OR_RETURN(connid);
+            CONN_CHECK_OR_RETURN(connid);
             pconn->out_put(pdata, nsend, HTTP::APPEND_CONTENT);
-	    printf("conn %ld reply body buf empty:%d len:%d\n",
-		   connid,
-		   reply.body_buff_empty(),
-		   reply.body_buff_length());
+            printf("conn %ld reply body buf empty:%d len:%d\n",
+                   connid,
+                   reply.body_buff_empty(),
+                   reply.body_buff_length());
             pdata += nsend;
 
-	    printf("conn %ld reply_write=%ld, conn_write=%ld\n",
-		   connid,
-		   reply.cur_emit_data_num(),
-		   pconn->written_bytes());
+            printf("conn %ld reply_write=%ld, conn_write=%ld\n",
+                   connid,
+                   reply.cur_emit_data_num(),
+                   pconn->written_bytes());
 
-	    // speed control
-	    event->usleep(self, n_usec);
+            // speed control
+            co::usleep(self, n_usec);
 
-	    // cache control, 防止接收慢还一直发
-	    bool show = false;
-	    while(true) 
-	      {
-		CONN_CHECK_OR_RETURN(connid);
-		if(reply.body_buff_length() < (long)send_block_size * 8)
-		  break;
-		if(!show) printf("slow down, buf too big:%ld",
-				 (long)reply.body_buff_length());
-		event->usleep(self, n_usec);
-	      }
+            // cache control, 防止接收慢还一直发
+            bool show = false;
+            while(true) 
+            {
+                CONN_CHECK_OR_RETURN(connid);
+                if(reply.body_buff_length() < (long)send_block_size * 8)
+                    break;
+                if(!show) printf("slow down, buf too big:%ld",
+                                 (long)reply.body_buff_length());
+                co::usleep(self, n_usec);
+            }
         }
 
-	printf("conn %ld block sent, nread=%zd, remain=%zd\n",
-	       connid, nread, remain);
+        printf("conn %ld block sent, nread=%zd, remain=%zd\n",
+               connid, nread, remain);
     }
 
     CONN_CHECK_OR_RETURN(connid);
