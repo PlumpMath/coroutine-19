@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <errno.h>
 
-#ifndef _FS_USE_GFS_
+#ifdef _FS_USE_GFS_
 #include "gfs.hpp"
 namespace fs = gfs;
 #else
