@@ -100,11 +100,11 @@ void GfsReader::thread_fun()
         char *data = read_file(std::get<1>(req).c_str(),
                                std::get<2>(req),
                                std::get<3>(req));
-        _inq.pop();
-	
+
         RespItem resp = std::make_tuple(std::get<0>(req),
                                         data);
         _outq.push(resp);
+        _inq.pop();
     }
 }
 
