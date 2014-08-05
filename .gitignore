@@ -1,6 +1,6 @@
 *.o
 *.a
-unittest
+test
 fsm
 httpdown
 
