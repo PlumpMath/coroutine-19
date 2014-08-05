@@ -18,7 +18,7 @@ AR=ar
 SRCS=$(wildcard src/*.cpp)
 OBJS=$(patsubst %.cpp,%.o,$(SRCS))
 
-.PHONY: test
+.PHONY: test install
 
 # ===== header end =====
 
@@ -35,5 +35,10 @@ clean:
 	make -C test clean
 	make -C examples clean
 
+# To change PREFIX, use make -e PREFIX="/opt/build-env" install
+PREFIX=/usr/local/
+install:
+	cp -f include/coroutine $(PREFIX)/include/
+	cp -f libcoroutine.a $(PREFIX)/lib/
 
 
