@@ -1,5 +1,5 @@
 // -*-mode:c++; coding:utf-8-*-
-#include <core.hpp>
+#include <coroutine/core.hpp>
 
 #include <cstdlib>
 #include <sstream>

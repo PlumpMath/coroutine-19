@@ -4,7 +4,7 @@
 
 #include <pthread.h>
 
-#include <coroutine-cpp/all.hpp>
+#include <coroutine/all.hpp>
 namespace co = coroutine;
 
 struct event_base *evbase = event_base_new();

@@ -3,7 +3,8 @@
 
 CPPFLAGS=-Wall -I../include -ggdb -std=c++0x
 LIBRT=$(shell uname|gawk '{if($$1=="Linux"){print "-lrt";exit;}}')
-LDFLAGS=-L.. -lcoroutine -lboost_context -levent $(LIBRT)
+LDFLAGS=-L.. -lcoroutine -lboost_context -levent $(LIBRT)\
+        -lgtest -lgtest_main
 
 CC=gcc
 CXX=g++
@@ -22,13 +23,12 @@ OBJS=$(patsubst %.cpp,%.o,$(SRCS))
 
 # ===== header end =====
 
-all: fsm
+all: test
 
-fsm: fsm.o
+test: $(OBJS)
 	$(CXX) -o $@ $^ $(LDFLAGS)
+	./test
 
 clean:
-	rm -f fsm *.o
-
-
+	rm -f test *.o
 

@@ -1,4 +1,4 @@
-#include <dispatcher.hpp>
+#include <coroutine/dispatcher.hpp>
 
 #include <string>
 
@@ -6,7 +6,7 @@
 
 #include <event2/event.h>
 
-#include "event.hpp"
+#include <coroutine/event.hpp>
 namespace co = coroutine;
 
 static 

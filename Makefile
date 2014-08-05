@@ -1,5 +1,7 @@
 
-CPPFLAGS=-Wall -I. -ggdb -std=c++0x
+# ===== header start =====
+
+CPPFLAGS=-Wall -I./include -ggdb -std=c++0x
 LIBRT=$(shell uname|gawk '{if($$1=="Linux"){print "-lrt";exit;}}')
 LDFLAGS=-lboost_context -levent $(LIBRT) -L.
 
@@ -13,25 +15,25 @@ AR=ar
 %.o: %.cpp
 	$(CXX) -c -o $@ $(CPPFLAGS) $<
 
-all: lib
+SRCS=$(wildcard src/*.cpp)
+OBJS=$(patsubst %.cpp,%.o,$(SRCS))
 
-# ------ lib ------
+.PHONY: test
 
-lib: libcoroutine.a
+# ===== header end =====
 
-libcoroutine.a: core.o event.o
-	ar rvc libcoroutine.a $^
+all: libcoroutine.a
 
-# ------ unit test ------
+libcoroutine.a: $(OBJS)
+	$(AR) rvc $@ $^
 
-test: lib unittest
-	./unittest
-
-unittest: core_test.o dispatcher_test.o event_test.o
-	$(CXX) -o $@ $^ -lcoroutine $(LDFLAGS) -lgtest -lgtest_main
+test:
+	make -C test
 
 clean:
-	rm -f unittest *.o *.a
+	rm -f $(OBJS) libcoroutine.a
+	make -C test clean
+	make -C examples clean
 
 
 
