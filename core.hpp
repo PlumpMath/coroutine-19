@@ -25,6 +25,18 @@ namespace coroutine
     // ==或!=比较。
     static const coroutine_impl_t *bad_coroutine = NULL;
 
+    struct Options
+    {
+        Options() : rethrow(true), unwind(true) {}
+        void enable_rethrow() { rethrow = true; }
+        void disable_rethrow() { rethrow = false; }
+        void enable_unwind() { unwind = true; }
+        void disable_unwind() { unwind = false; }
+        
+        bool rethrow;
+        bool unwind;
+    };
+
     // create - 从例程创建一个协程出来
     //
     // rethrow - 表示内部异常是否要再次抛出来，如果为false，内部异常将
@@ -34,14 +46,16 @@ namespace coroutine
     //
     // 出错时，返回bad_coroutine
     coroutine_t create(routine_t f,
-                       bool rethrow,
-                       bool unwind,
-                       int stacksize);
+                       int stacksize,
+                       Options opt);
 
     // create - 重载版本，指定栈大小时调用这个比较方便
     inline
     coroutine_t create(routine_t f, int stacksize=64*1024)
-    { return create(f, true, true, stacksize); }
+    {
+        Options opt;            // use default value
+        return create(f, stacksize, opt);
+    }
 
     // resume - 进入到协程的上次返回点开始执行，第一次是从头执行
     //

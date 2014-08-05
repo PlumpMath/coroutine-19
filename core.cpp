@@ -78,7 +78,7 @@ namespace coroutine
                            co->arg);
     }
         
-    coroutine_t create(routine_t f, bool rethrow, bool unwind, int stacksize)
+    coroutine_t create(routine_t f, int stacksize, Options opt)
     {
         void *p = std::malloc(stacksize + sizeof(coroutine_impl_t));
         char *top = (char *)p + stacksize;
@@ -86,8 +86,8 @@ namespace coroutine
         // downward.
         coroutine_impl_t *co(new(top) coroutine_impl_t);
         co->flags |= flag_suspend;
-        if(unwind) co->flags |= flag_unwind;
-        if(rethrow) co->flags |= flag_rethrow;
+        if(opt.unwind) co->flags |= flag_unwind;
+        if(opt.rethrow) co->flags |= flag_rethrow;
         co->f = f;
         co->context = ctx::make_fcontext(top, stacksize,
                                          routine_starter);
