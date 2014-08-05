@@ -202,3 +202,11 @@ TEST(Core, destory_callback)
     EXPECT_TRUE(str == "world");
 }
 
+TEST(Core, set_get_name)
+{
+    co::coroutine_t f = co::create(dummy);
+    co::set_name(f, "dummy");
+    const std::string name = co::get_name(f);
+    EXPECT_TRUE(name == "dummy");
+}
+

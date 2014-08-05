@@ -73,6 +73,8 @@ namespace coroutine
         return reinterpret_cast<T*>(get_data(c));
     }
 
+    void set_name(const coroutine_t &c, const char *name);
+    const char *get_name(const coroutine_t &c);
     
     // 协程释放时调用的函数
     typedef void (*destroy_callback)(self_t);

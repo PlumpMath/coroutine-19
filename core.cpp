@@ -2,6 +2,7 @@
 #include <core.hpp>
 
 #include <cstdlib>
+#include <stdio.h>
 #include <cstring>
 #include <assert.h>
 #include <new>
@@ -29,8 +30,11 @@ namespace coroutine
         flag_has_unknown_exception = 1 << 8, // 有未知异常抛出
     };
 
+    static const std::size_t MAX_NAME_LEN = 256;
+
     struct coroutine_impl_t
     {
+        char name[MAX_NAME_LEN];
         int flags;
         routine_t f;
         intptr_t arg;
@@ -166,6 +170,16 @@ namespace coroutine
     intptr_t get_data(self_t c)
     {
         return c->udata;
+    }
+
+    void set_name(const coroutine_t &c, const char *name)
+    {
+        snprintf(c->name, MAX_NAME_LEN, "%s", name);
+    }
+
+    const char *get_name(const coroutine_t &c)
+    {
+        return c->name;
     }
 
     void set_destroy_callback(const coroutine_t &c,
