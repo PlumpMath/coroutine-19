@@ -78,7 +78,7 @@ intptr_t process_http(co::coroutine_t *self, intptr_t data);
 void HttpServer::process_input(HttpConnection &conn,
                                ListByteBuffer *)
 {
-    co::coroutine_ptr f = co::create(process_http);
+    co::coroutine_ptr f = co::create(process_http, _evbase);
     arg_t arg = std::make_tuple(conn.id(),
                                 _reactor.get(),
                                 _reader,
