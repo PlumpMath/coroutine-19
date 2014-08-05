@@ -27,11 +27,11 @@ GfsReader::~GfsReader()
 
 char *
 GfsReader::read(uint64_t id,
-		co::self_t c,
-		int timeout,
-		const std::string &filename,
-		std::size_t length,
-		uint64_t offset)
+                co::self_t c,
+                int timeout,
+                const std::string &filename,
+                std::size_t length,
+                uint64_t offset)
 {
     int rv = _inq.push(
         std::make_tuple(id,
@@ -41,7 +41,7 @@ GfsReader::read(uint64_t id,
     assert(rv == 0);
     intptr_t d;
     bool ok;
-    std::tie(d, ok) = _dispatcher.wait_for(id, c, timeout);
+    std::tie(d, ok) = _dispatcher.wait(c, id, timeout);
     assert(ok);
     char *da = (char*)d;
 
@@ -50,17 +50,17 @@ GfsReader::read(uint64_t id,
 
 int GfsReader::poll()
 {
-  const std::size_t max_process_once = 64;
+    const std::size_t max_process_once = 64;
     std::size_t n = 0;
     std::size_t max_once = (std::min)(_outq.size(),
-				      max_process_once);
+                                      max_process_once);
     while(!_outq.empty() && (n++ < max_once))
     {
         RespItem &item = _outq.front();
-        _dispatcher.dispatch(std::get<0>(item),
-                             (intptr_t)std::get<1>(item));
+        _dispatcher.notify(std::get<0>(item),
+                           (intptr_t)std::get<1>(item));
 
-	_outq.pop();
+        _outq.pop();
     }
 
     return 0;
@@ -68,8 +68,8 @@ int GfsReader::poll()
 
 static
 char *read_file(const char *filename,
-		std::size_t length,
-		uint64_t offset)
+                std::size_t length,
+                uint64_t offset)
                      
 {
     fs::file_t fd = fs::open(filename);
@@ -77,11 +77,11 @@ char *read_file(const char *filename,
     ssize_t rv = fs::preadn(fd, data, length, offset);
     fs::close(fd);
     if((size_t)rv < length)
-      {
-	printf("read error, errno:%d, rv:%ld",
-	       fs::get_errno(), rv);
-	assert(false);
-      }
+    {
+        printf("read error, errno:%d, rv:%ld",
+               fs::get_errno(), rv);
+        assert(false);
+    }
     return data;
 }
 
@@ -98,9 +98,9 @@ void GfsReader::thread_fun()
 
         ReqItem &req = _inq.front();
         char *data = read_file(std::get<1>(req).c_str(),
-			       std::get<2>(req),
-			       std::get<3>(req));
-	_inq.pop();
+                               std::get<2>(req),
+                               std::get<3>(req));
+        _inq.pop();
 	
         RespItem resp = std::make_tuple(std::get<0>(req),
                                         data);
