@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <sys/time.h>
 #include <signal.h>
@@ -33,9 +34,15 @@ void ignore_pipe(void)
     sigaction(SIGPIPE, &sig, 0);
 }
 
-int main()
+int main(int argc, char **argv)
 {
     ignore_pipe();
+
+    int port = 8080;
+    if(argc >= 2)
+    {
+        port = atoi(argv[1]);
+    }
 
     struct event_base *base = event_base_new();
     GfsReader *reader = new GfsReader();
