@@ -24,7 +24,7 @@ namespace coroutine
         //
         // sec/usec是等待超时的时间
         std::pair<intptr_t, bool>
-        wait_for(T id, coroutine_t *co,
+        wait_for(T id, self_t co,
                  long sec = 0, long usec = 0);
         
         // 分发一个ID，将激活等待该ID的协程。返回激活的协程数。
@@ -38,19 +38,19 @@ namespace coroutine
 
     private:
         struct event_base *_base;
-        typedef std::pair<coroutine_ptr, struct event *> value_type;
+        typedef std::pair<coroutine_t, struct event *> value_type;
         typedef std::unordered_map<T, value_type> map_type;
         map_type _waitings;
     };
 
     // template<typename T>
     // std::pair<intptr_t, bool>
-    // Dispatcher<T>::wait_for(T id, coroutine_t *co)
+    // Dispatcher<T>::wait_for(T id, self_t co)
     // {
     //     std::pair<intptr_t, bool> ret(0, false);
     //     ret.second = _waitings.insert(
     //         typename map_type::value_type(id,
-    //                                       coroutine_ptr(co))
+    //                                       coroutine_t(co))
     //         ).second;
     //     if(ret.second)
     //         ret.first = yield(co);
@@ -61,7 +61,7 @@ namespace coroutine
     struct callback_arg
     {
         Dispatcher<T> *dispatcher;
-        coroutine_ptr co;
+        coroutine_t co;
         T *id;
     };
 
@@ -84,7 +84,7 @@ namespace coroutine
 
     template<typename T>
     std::pair<intptr_t, bool>
-    Dispatcher<T>::wait_for(T id, coroutine_t *co,
+    Dispatcher<T>::wait_for(T id, self_t co,
                             long sec, long usec)
     {
       value_type empty;
@@ -97,7 +97,7 @@ namespace coroutine
 
         struct event *timeout = NULL;
 
-        callback_arg<T> arg = { this, coroutine_ptr(co), &id };
+        callback_arg<T> arg = { this, coroutine_t(co), &id };
         
         if(sec != 0 || usec != 0)
         {
@@ -110,7 +110,7 @@ namespace coroutine
             evtimer_add(timeout, &tv);
         }
 
-        rv.first->second.first = coroutine_ptr(co);
+        rv.first->second.first = coroutine_t(co);
         rv.first->second.second = timeout;
 
         intptr_t val = yield(co);
@@ -124,7 +124,7 @@ namespace coroutine
         if( it == _waitings.end())
             return 0;
 
-        coroutine_ptr co(it->second.first);
+        coroutine_t co(it->second.first);
         struct event *timeout = it->second.second;
         if(timeout != NULL)
         {

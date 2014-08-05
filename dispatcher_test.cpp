@@ -20,7 +20,7 @@ struct Guard
     std::string *_s;
 };
 
-intptr_t wait_for_cat(co::coroutine_t *self, intptr_t data)
+intptr_t wait_for_cat(co::self_t self, intptr_t data)
 {
     StringDispatcher &d = *(StringDispatcher*)data;
     std::pair<intptr_t, bool> ret = d.wait_for("cat", self);
@@ -30,7 +30,7 @@ intptr_t wait_for_cat(co::coroutine_t *self, intptr_t data)
     return 0;
 }
 
-intptr_t wait_for_dog(co::coroutine_t *self, intptr_t data)
+intptr_t wait_for_dog(co::self_t self, intptr_t data)
 {
     StringDispatcher &d = *(StringDispatcher*)data;
     std::pair<intptr_t, bool> ret = d.wait_for("dog", self);
@@ -40,7 +40,7 @@ intptr_t wait_for_dog(co::coroutine_t *self, intptr_t data)
     return 0;
 }
 
-intptr_t wait_for_dog_dup(co::coroutine_t *self, intptr_t data)
+intptr_t wait_for_dog_dup(co::self_t self, intptr_t data)
 {
     StringDispatcher &d = *(StringDispatcher*)data;
     std::pair<intptr_t, bool> ret = d.wait_for("dog", self);
@@ -48,7 +48,7 @@ intptr_t wait_for_dog_dup(co::coroutine_t *self, intptr_t data)
     return 0;
 }
 
-intptr_t wait_for_tiger(co::coroutine_t *self, intptr_t data)
+intptr_t wait_for_tiger(co::self_t self, intptr_t data)
 {
     StringDispatcher &d = *(StringDispatcher*)data;
     std::pair<intptr_t, bool> ret = d.wait_for("tiger", self);
@@ -58,7 +58,7 @@ intptr_t wait_for_tiger(co::coroutine_t *self, intptr_t data)
     return 0;
 }
 
-intptr_t wait_for_tiger_with_guard(co::coroutine_t *self,
+intptr_t wait_for_tiger_with_guard(co::self_t self,
                                    intptr_t data)
 {
     StringDispatcher &d = *(StringDispatcher*)data;
@@ -73,7 +73,7 @@ intptr_t wait_for_tiger_with_guard(co::coroutine_t *self,
     return 0;
 }
 
-intptr_t wait_for_1s_timeout(co::coroutine_t *self,
+intptr_t wait_for_1s_timeout(co::self_t self,
                              intptr_t data)
 {
     StringDispatcher &d = *(StringDispatcher*)data;
@@ -178,7 +178,7 @@ TEST(Dispatcher, wait_for_1s_timeout)
 
     StringDispatcher d(base);
 
-    co::coroutine_ptr c = co::create(wait_for_1s_timeout);
+    co::coroutine_t c = co::create(wait_for_1s_timeout);
     co::resume(c, (intptr_t)&d);
 
     event_base_dispatch(base);

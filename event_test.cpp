@@ -8,7 +8,7 @@ namespace co = coroutine;
 
 co::Event *cur_event;
 
-intptr_t sleep_1s(co::coroutine_t *c, intptr_t data)
+intptr_t sleep_1s(co::self_t c, intptr_t data)
 {
     bool *stop = (bool*)data;
 
@@ -22,7 +22,7 @@ intptr_t sleep_1s(co::coroutine_t *c, intptr_t data)
     return 0;
 }
 
-intptr_t usleep_1500us(co::coroutine_t *c, intptr_t data)
+intptr_t usleep_1500us(co::self_t c, intptr_t data)
 {
     bool *stop = (bool*)data;
 
@@ -45,10 +45,11 @@ intptr_t usleep_1500us(co::coroutine_t *c, intptr_t data)
 
 TEST(Event, sleep_1s)
 {
-    co::Event event;
+    struct event_base *base = event_base_new();
+    co::Event event(base);
     cur_event = &event;
 
-    co::coroutine_ptr c(co::create(sleep_1s));
+    co::coroutine_t c(co::create(sleep_1s));
 
     std::time_t begin = std::time(NULL);
 
@@ -66,10 +67,11 @@ TEST(Event, sleep_1s)
 
 TEST(Event, usleep_1500s)
 {
-    co::Event event;
+    struct event_base *base = event_base_new();
+    co::Event event(base);
     cur_event = &event;
 
-    co::coroutine_ptr c(co::create(usleep_1500us));
+    co::coroutine_t c(co::create(usleep_1500us));
 
     struct timeval begin, end;
     gettimeofday(&begin, NULL);

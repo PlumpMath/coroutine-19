@@ -29,7 +29,7 @@ namespace coroutine
         flag_has_unknown_exception = 1 << 8, // 有未知异常抛出
     };
 
-    struct coroutine_t
+    struct coroutine_impl_t
     {
         int flags;
         routine_t f;
@@ -38,7 +38,7 @@ namespace coroutine
         void *caller;
         int refcount;
 
-        coroutine_t() :
+        coroutine_impl_t() :
             flags(0), f(NULL), data(0),
             context(NULL), caller(NULL),
             refcount(0)
@@ -52,7 +52,7 @@ namespace coroutine
     static
     void routine_starter(intptr_t data)
     {
-        coroutine_t *co(reinterpret_cast<coroutine_t*>(data));
+        coroutine_impl_t *co(reinterpret_cast<coroutine_impl_t*>(data));
         try
         { co->data = co->f(co, co->data); }
         catch (const forced_unwind &)
@@ -68,29 +68,29 @@ namespace coroutine
                            co->data);
     }
         
-    coroutine_ptr create(routine_t f, bool rethrow, bool unwind, int stacksize)
+    coroutine_t create(routine_t f, bool rethrow, bool unwind, int stacksize)
     {
-        void *p = std::malloc(stacksize + sizeof(coroutine_t));
+        void *p = std::malloc(stacksize + sizeof(coroutine_impl_t));
         char *top = (char *)p + stacksize;
         // alloc coroutine at top of stack and the stack is growing
         // downward.
-        coroutine_t *co(new(top) coroutine_t);
+        coroutine_impl_t *co(new(top) coroutine_impl_t);
         co->flags |= flag_suspend;
         if(unwind) co->flags |= flag_unwind;
         if(rethrow) co->flags |= flag_rethrow;
         co->f = f;
         co->context = ctx::make_fcontext(top, stacksize,
                                          routine_starter);
-        return coroutine_ptr(co);
+        return coroutine_t(co);
     }
 
     static
-    intptr_t resume(coroutine_t *c, intptr_t data=0);
+    intptr_t resume(coroutine_impl_t *c, intptr_t data=0);
 
-    void destroy(coroutine_t *c)
+    void destroy(coroutine_impl_t *c)
     {
         if(!(c->flags & flag_complete) &&
-            (c->flags & flag_unwind))
+           (c->flags & flag_unwind))
         {
             c->flags |= flag_request_unwind_stack;
             resume(c);
@@ -98,12 +98,12 @@ namespace coroutine
         // adjust pointer to head of memory
         ctx::fcontext_t *ctx = (ctx::fcontext_t*)c->context;
         void *p = (char*)c - ctx->fc_stack.size;
-        c->~coroutine_t();
+        c->~coroutine_impl_t();
         std::free(p);
     }
 
     static
-    intptr_t resume(coroutine_t *c, intptr_t data)
+    intptr_t resume(coroutine_impl_t *c, intptr_t data)
     {
         assert((c->flags & flag_suspend) &&
                !(c->flags & flag_complete));
@@ -126,14 +126,14 @@ namespace coroutine
         return c->data;
     }
 
-    intptr_t resume(const coroutine_ptr &f, intptr_t data)
+    intptr_t resume(const coroutine_t &f, intptr_t data)
     {
         // always hold the coroutine before jump into
-        coroutine_ptr c(f); 
-	return resume(c.get(), data);
+        coroutine_t c(f); 
+        return resume(c.get(), data);
     }
 
-    intptr_t yield(coroutine_t* c, intptr_t data)
+    intptr_t yield(coroutine_impl_t* c, intptr_t data)
     {
         assert(!(c->flags & flag_suspend) &&
                !(c->flags & flag_complete));
@@ -149,21 +149,21 @@ namespace coroutine
         return c->data;
     }
 
-    bool complete(coroutine_t *c)
+    bool complete(const coroutine_t &c)
     {
         return c->flags & flag_complete;
     }
 
-    void intrusive_ptr_add_ref(coroutine_t *p)
+    void intrusive_ptr_add_ref(coroutine_impl_t *p)
     {
-      ++ p->refcount;
+        ++ p->refcount;
     }
 
-    void intrusive_ptr_release(coroutine_t *p)
+    void intrusive_ptr_release(coroutine_impl_t *p)
     {
         -- p->refcount;
         if(p->refcount == 0)
-	    destroy(p);
+            destroy(p);
     }
 
 }

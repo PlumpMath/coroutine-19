@@ -13,7 +13,7 @@ namespace coroutine
         if(_queue.empty()) return 0;
 
         int n = 0;
-        std::queue<coroutine_ptr> running;
+        std::queue<coroutine_t> running;
         while(n<max_process_once && !_queue.empty())
         {
             ++n;

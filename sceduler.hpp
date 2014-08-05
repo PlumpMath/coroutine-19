@@ -13,9 +13,9 @@ namespace coroutine
     {
     public:
         // use for new created coroutines
-        void add(coroutine_ptr c);
+        void add(const coroutine_t &c);
         // use inner of coroutines
-        void wait_for_scedule(coroutine_t *c);
+        void wait_for_scedule(self_t c);
 
         // run some coroutines
         int poll(int max_process_once = 64);
@@ -23,19 +23,19 @@ namespace coroutine
         bool empty() const { return _queue.empty(); }
 
     private:
-        std::queue<coroutine_ptr> _queue;
+        std::queue<coroutine_t> _queue;
     };
 
     inline
-    void Sceduler::add(coroutine_ptr c)
+    void Sceduler::add(const coroutine_t &c)
     {
         _queue.push(c);
     }
 
     inline
-    void Sceduler::wait_for_scedule(coroutine_t *c)
+    void Sceduler::wait_for_scedule(self_t c)
     {
-        _queue.push(coroutine_ptr(c));
+        _queue.push(coroutine_t(c));
         coroutine::yield(c);
     }
 

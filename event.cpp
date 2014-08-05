@@ -6,15 +6,13 @@
 
 namespace coroutine
 {
-    Event::Event()
+    Event::Event(struct event_base *base)
+        : _base(base)
     {
-        _base = event_base_new();
-        if(!_base) throw std::bad_alloc();
     }
 
     Event::~Event()
     {
-        event_base_free(_base);
     }
 
     void Event::poll()
@@ -30,11 +28,11 @@ namespace coroutine
                           short event,
                           void *arg)
     {
-        coroutine_t *c = (coroutine_t*)arg;
+        self_t c = (self_t)arg;
         resume(c);
     }
 
-    void Event::sleep(coroutine_t *c, long sec, long usec)
+    void Event::sleep(self_t c, long sec, long usec)
     {
         struct event timeout;
         struct timeval tv;
@@ -47,11 +45,9 @@ namespace coroutine
         tv.tv_usec = usec;
         event_add(&timeout, &tv);
 
-        coroutine_ptr hold(c);  // prevent destroy
-	do {
-	  yield(c);
-	} while(false);
-	(void)hold;
+        coroutine_t hold(c);  // prevent destroy
+        yield(c);
+        (void)hold;
     }
 
 }

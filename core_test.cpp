@@ -11,7 +11,7 @@ struct ZeroGuard
     ~ZeroGuard() { *_ptr = 0; }
 };
 
-intptr_t test_no_data_transfered(co::coroutine_t *self, intptr_t data)
+intptr_t test_no_data_transfered(co::self_t self, intptr_t data)
 {
     // do something
     for(int i=0; i<16; ++i)
@@ -23,17 +23,17 @@ intptr_t test_no_data_transfered(co::coroutine_t *self, intptr_t data)
 
 TEST(Core, no_data_transfered)
 {
-    co::coroutine_ptr f =
+    co::coroutine_t f =
         co::create(test_no_data_transfered);
 
-    EXPECT_TRUE(!co::complete(f.get()));
+    EXPECT_TRUE(!co::complete(f));
 
     co::resume(f);
 
-    EXPECT_TRUE(co::complete(f.get()));
+    EXPECT_TRUE(co::complete(f));
 }
 
-intptr_t test_transfer_data(co::coroutine_t *self, intptr_t data)
+intptr_t test_transfer_data(co::self_t self, intptr_t data)
 {
     int n = data;
     EXPECT_TRUE(n == 1);
@@ -44,14 +44,14 @@ intptr_t test_transfer_data(co::coroutine_t *self, intptr_t data)
 
 TEST(Core, transfer_data)
 {
-    co::coroutine_ptr f =
+    co::coroutine_t f =
         co::create(test_transfer_data);
 
     int n = co::resume(f, 1);
     EXPECT_TRUE(n == 2);
 }
 
-intptr_t test_unwind_stack(co::coroutine_t *self, intptr_t data)
+intptr_t test_unwind_stack(co::self_t self, intptr_t data)
 {
     int *ptr = (int*)data;
     ZeroGuard guard(ptr);
@@ -64,7 +64,7 @@ TEST(Core, unwind_stack)
     int n = 1;
 
     {
-        co::coroutine_ptr f = co::create(test_unwind_stack);
+        co::coroutine_t f = co::create(test_unwind_stack);
         co::resume(f, (intptr_t)&n);
         EXPECT_TRUE(n == 1);
     }
@@ -72,7 +72,7 @@ TEST(Core, unwind_stack)
     EXPECT_TRUE(n == 0);
 }
 
-intptr_t test_throw_std_exception(co::coroutine_t *self, intptr_t data)
+intptr_t test_throw_std_exception(co::self_t self, intptr_t data)
 {
     throw std::bad_alloc();
     return 0;
@@ -80,11 +80,11 @@ intptr_t test_throw_std_exception(co::coroutine_t *self, intptr_t data)
 
 TEST(Core, throw_std_exception)
 {
-    co::coroutine_ptr f = co::create(test_throw_std_exception);
+    co::coroutine_t f = co::create(test_throw_std_exception);
     EXPECT_THROW(co::resume(f), co::exception_std);
 }
 
-intptr_t test_throw_unknown_exception(co::coroutine_t *self, intptr_t data)
+intptr_t test_throw_unknown_exception(co::self_t self, intptr_t data)
 {
     throw "throw some non-std exception";
     return 0;
@@ -92,13 +92,13 @@ intptr_t test_throw_unknown_exception(co::coroutine_t *self, intptr_t data)
 
 TEST(Core, throw_unknown_exception)
 {
-    co::coroutine_ptr f =
+    co::coroutine_t f =
         co::create(test_throw_unknown_exception);
     EXPECT_THROW(co::resume(f), co::exception_unknown);
 }
 
 
-intptr_t test_no_rethrow(co::coroutine_t *self, intptr_t data)
+intptr_t test_no_rethrow(co::self_t self, intptr_t data)
 {
     throw std::bad_alloc();
     return 0;
@@ -106,11 +106,11 @@ intptr_t test_no_rethrow(co::coroutine_t *self, intptr_t data)
 
 TEST(Core, no_rethrow)
 {
-    co::coroutine_ptr f = co::create(test_no_rethrow, false);
+    co::coroutine_t f = co::create(test_no_rethrow, false);
     EXPECT_NO_THROW(co::resume(f));
 }
 
-intptr_t test_no_holding_ptr(co::coroutine_t *self,
+intptr_t test_no_holding_ptr(co::self_t self,
                              intptr_t data)
 {
     int * run = (int*)data;
@@ -144,7 +144,7 @@ void echo(coroutine_ptr self)
     yield(self, self.data());
 }
 */
-intptr_t echo(co::coroutine_t *self, intptr_t data)
+intptr_t echo(co::self_t self, intptr_t data)
 {
     while(true) data = yield(self, data);
     return 0;
@@ -152,8 +152,7 @@ intptr_t echo(co::coroutine_t *self, intptr_t data)
 
 TEST(Core, echo)
 {
-    co::coroutine_ptr f = co::create(echo);
-    co::resume(f, (intptr_t)f.get());
+    co::coroutine_t f = co::create(echo);
 
     for(int i=0; i<128; ++i)
     {
