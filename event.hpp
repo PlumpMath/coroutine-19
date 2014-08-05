@@ -8,34 +8,39 @@
 
 namespace coroutine
 {
-    // TODO: rename to EventWithCoroutine
-    class Event
+    inline
+    coroutine_t create(routine_t f, struct event_base *evbase)
     {
-    public:
-        Event(struct event_base *base);
-        ~Event();
+        coroutine_t c(create(f));
+        set_event_base(c, evbase);
+        return c;
+    }
 
-        void poll();
+    inline
+    coroutine_t create(routine_t f,
+                       struct event_base *evbase,
+                       std::size_t stacksize)
+    {
+        coroutine_t c(create(f, stacksize));
+        set_event_base(c, evbase);
+        return c;
+    }
 
-        void sleep(self_t c, long sec)
-            { sleep(c, sec, 0); }
-        void usleep(self_t c, long usec)
-            { sleep(c, 0, usec); }
+    void poll_event_base(struct event_base *evbase);
 
+    void sleep(self_t c, long sec, long usec);
 
+    inline
+    void sleep(self_t c, long sec)
+    {
+        sleep(c, sec, 0);
+    }
 
-        void accept();
-        void connect();
-        void send();
-        void recv();
-        void close();
-
-    protected:
-        void sleep(self_t c, long sec, long usec);
-
-    private:
-        struct event_base *_base;
-    };
+    inline
+    void usleep(self_t c, long usec)
+    {
+        sleep(c, 0, usec);
+    }
 
 }
 

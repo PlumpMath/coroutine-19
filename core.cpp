@@ -40,13 +40,14 @@ namespace coroutine
         routine_t f;
         intptr_t arg;
         intptr_t udata;
+        intptr_t event_base;    // store struct event_base*
         void *context;
         void *caller;
         int refcount;
         destroy_callback destroy_cb;
 
         coroutine_impl_t() :
-            flags(0), f(NULL), arg(0), udata(0),
+            flags(0), f(NULL), arg(0), udata(0), event_base(0),
             context(NULL), caller(NULL),
             refcount(0), destroy_cb(NULL)
             {}
@@ -199,6 +200,16 @@ namespace coroutine
         -- p->refcount;
         if(p->refcount == 0)
             destroy(p);
+    }
+
+    void set_event_base(const coroutine_t &c, void *evbase)
+    {
+        c->event_base = (intptr_t)evbase;
+    }
+
+    void *get_event_base(self_t c)
+    {
+        return (void*)c->event_base;
     }
 
     std::string get_info(const coroutine_t &c)

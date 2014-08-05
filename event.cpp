@@ -6,19 +6,10 @@
 
 namespace coroutine
 {
-    Event::Event(struct event_base *base)
-        : _base(base)
-    {
-    }
-
-    Event::~Event()
-    {
-    }
-
-    void Event::poll()
+    void poll_event_base(struct event_base *evbase)
     {
         int flags = EVLOOP_NONBLOCK;
-        int rv = event_base_loop(_base, flags);
+        int rv = event_base_loop(evbase, flags);
         assert(rv != -1);
         (void)rv;
     }
@@ -32,12 +23,14 @@ namespace coroutine
         resume(c);
     }
 
-    void Event::sleep(self_t c, long sec, long usec)
+    void sleep(self_t c, long sec, long usec)
     {
+        struct event_base *evbase =
+            (struct event_base *)get_event_base(c);
         struct event timeout;
         struct timeval tv;
 
-        evtimer_assign(&timeout, _base,
+        evtimer_assign(&timeout, evbase,
                        timeout_callback, (void*)c);
                        
         evutil_timerclear(&tv);
@@ -47,7 +40,6 @@ namespace coroutine
 
         coroutine_t hold(c);  // prevent destroy
         yield(c);
-        (void)hold;
     }
 
 }

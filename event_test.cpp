@@ -6,14 +6,15 @@
 
 namespace co = coroutine;
 
-co::Event *cur_event;
+static 
+struct event_base *base = event_base_new();
 
 intptr_t sleep_1s(co::self_t c, intptr_t data)
 {
     bool *stop = (bool*)data;
 
     std::time_t begin = std::time(NULL);
-    cur_event->sleep(c, 1);
+    sleep(c, 1);
     std::time_t end = time(NULL);
     EXPECT_EQ(end - begin, 1);
 
@@ -28,7 +29,7 @@ intptr_t usleep_1500us(co::self_t c, intptr_t data)
 
     struct timeval begin, end;
     gettimeofday(&begin, NULL);
-    cur_event->usleep(c, 1500);
+    usleep(c, 1500);
     gettimeofday(&end, NULL);
     
     long elapsed =
@@ -45,11 +46,7 @@ intptr_t usleep_1500us(co::self_t c, intptr_t data)
 
 TEST(Event, sleep_1s)
 {
-    struct event_base *base = event_base_new();
-    co::Event event(base);
-    cur_event = &event;
-
-    co::coroutine_t c(co::create(sleep_1s));
+    co::coroutine_t c(co::create(sleep_1s, base));
 
     std::time_t begin = std::time(NULL);
 
@@ -57,7 +54,7 @@ TEST(Event, sleep_1s)
     co::resume(c, (intptr_t)&stop);
     while(! stop)
     {
-        event.poll();
+        co::poll_event_base(base);
     }
     
     std::time_t end = time(NULL);
@@ -67,11 +64,7 @@ TEST(Event, sleep_1s)
 
 TEST(Event, usleep_1500s)
 {
-    struct event_base *base = event_base_new();
-    co::Event event(base);
-    cur_event = &event;
-
-    co::coroutine_t c(co::create(usleep_1500us));
+    co::coroutine_t c(co::create(usleep_1500us, base));
 
     struct timeval begin, end;
     gettimeofday(&begin, NULL);
@@ -80,7 +73,7 @@ TEST(Event, usleep_1500s)
     co::resume(c, (intptr_t)&stop);
     while(! stop)
     {
-        event.poll();
+        co::poll_event_base(base);
     }
     
     gettimeofday(&end, NULL);

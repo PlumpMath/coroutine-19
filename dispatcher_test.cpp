@@ -6,8 +6,10 @@
 
 #include <event2/event.h>
 
+#include "event.hpp"
 namespace co = coroutine;
 
+static 
 struct event_base *base = event_base_new();
 
 typedef co::Dispatcher<long> LongDispatcher;
@@ -90,14 +92,14 @@ intptr_t wait_for_1s_timeout(co::self_t self,
 TEST(Dispatcher, dispatch_success)
 {
 
-    StringDispatcher d(base);
+    StringDispatcher d;
 
     {
-        co::resume(co::create(wait_for_cat),
+        co::resume(co::create(wait_for_cat, base),
                    (intptr_t)&d);
-        co::resume(co::create(wait_for_dog),
+        co::resume(co::create(wait_for_dog, base),
                    (intptr_t)&d);
-        co::resume(co::create(wait_for_tiger),
+        co::resume(co::create(wait_for_tiger, base),
                    (intptr_t)&d);
     }
 
@@ -121,12 +123,12 @@ TEST(Dispatcher, dispatch_success)
 TEST(Dispatcher, wait_for_duplicated)
 {
 
-    StringDispatcher d(base);
+    StringDispatcher d;
 
     {
-        co::resume(co::create(wait_for_dog),
+        co::resume(co::create(wait_for_dog, base),
                    (intptr_t)&d);
-        co::resume(co::create(wait_for_dog_dup),
+        co::resume(co::create(wait_for_dog_dup, base),
                    (intptr_t)&d);
     }
 
@@ -143,10 +145,10 @@ TEST(Dispatcher, wait_for_duplicated)
 TEST(Dispatcher, dispatch_no_waiters)
 {
 
-    StringDispatcher d(base);
+    StringDispatcher d;
 
     {
-        co::resume(co::create(wait_for_dog),
+        co::resume(co::create(wait_for_dog, base),
                    (intptr_t)&d);
     }
 
@@ -159,10 +161,10 @@ TEST(Dispatcher, dispatch_no_waiters)
 TEST(Dispatcher, coroutine_auto_destroy)
 {
 
-    StringDispatcher d(base);
+    StringDispatcher d;
 
     {
-        co::resume(co::create(wait_for_tiger_with_guard),
+        co::resume(co::create(wait_for_tiger_with_guard, base),
                    (intptr_t)&d);
     }
 
@@ -176,9 +178,9 @@ TEST(Dispatcher, coroutine_auto_destroy)
 TEST(Dispatcher, wait_for_1s_timeout)
 {
 
-    StringDispatcher d(base);
+    StringDispatcher d;
 
-    co::coroutine_t c = co::create(wait_for_1s_timeout);
+    co::coroutine_t c = co::create(wait_for_1s_timeout, base);
     co::resume(c, (intptr_t)&d);
 
     event_base_dispatch(base);

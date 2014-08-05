@@ -106,7 +106,7 @@ intptr_t test_no_rethrow(co::self_t self, intptr_t data)
 
 TEST(Core, no_rethrow)
 {
-    co::coroutine_t f = co::create(test_no_rethrow, false);
+    co::coroutine_t f = co::create(test_no_rethrow, false, true, 64*1024);
     EXPECT_NO_THROW(co::resume(f));
 }
 

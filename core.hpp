@@ -34,13 +34,13 @@ namespace coroutine
     //
     // 出错时，返回bad_coroutine
     coroutine_t create(routine_t f,
-                       bool rethrow=true,
-                       bool unwind=true,
-                       int stacksize=64*1024);
+                       bool rethrow,
+                       bool unwind,
+                       int stacksize);
 
     // create - 重载版本，指定栈大小时调用这个比较方便
     inline
-    coroutine_t create(routine_t f, int stacksize)
+    coroutine_t create(routine_t f, int stacksize=64*1024)
     { return create(f, true, true, stacksize); }
 
     // resume - 进入到协程的上次返回点开始执行，第一次是从头执行
@@ -87,6 +87,9 @@ namespace coroutine
         
     void intrusive_ptr_add_ref(coroutine_impl_t *p);
     void intrusive_ptr_release(coroutine_impl_t *p);
+
+    void set_event_base(const coroutine_t &c, void *evbase);
+    void *get_event_base(self_t c);
 
     struct exception_unknown {};
 

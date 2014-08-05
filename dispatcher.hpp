@@ -14,10 +14,6 @@ namespace coroutine
     class Dispatcher
     {
     public:
-        explicit
-        Dispatcher(struct event_base *base)
-            : _base(base) {}
-
         // 等待特定key上的数据通知。返回值的second代表是否成功。如果不
         // 成功，说明key已经有其它协程在等了；很有可能是key冲突了。如果已
         // 成功，则first是分发回来的数据。
@@ -37,7 +33,6 @@ namespace coroutine
                               void *arg);
 
     private:
-        struct event_base *_base;
         typedef std::pair<coroutine_t,
                           struct event *> value_type;
         typedef std::unordered_map<Key, value_type> map_type;
@@ -88,8 +83,10 @@ namespace coroutine
         {
             callback_arg arg =
                 std::make_tuple(this, coroutine_t(co), &key);
-            
-            timeout = evtimer_new(_base, timeout_callback,
+
+            struct event_base *evbase =
+                (struct event_base *)get_event_base(co);
+            timeout = evtimer_new(evbase, timeout_callback,
                                   &arg);
             struct timeval tv;
             evutil_timerclear(&tv);
