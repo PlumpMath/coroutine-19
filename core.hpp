@@ -23,7 +23,7 @@ namespace coroutine
 
     // bad_coroutine - 常量，表示错误协程。可与self_t或coroutine_t进行
     // ==或!=比较。
-    static const coroutine_impl_t *bad_coroutine = NULL;
+    #define bad_coroutine ((coroutine_impl_t *)NULL)
 
     struct Options
     {
