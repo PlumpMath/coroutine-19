@@ -45,18 +45,33 @@ namespace coroutine
     // resume - 进入到协程的上次返回点开始执行，第一次是从头执行
     //
     // c - 协程
-    // data - 传给协程的数据，首次调用协程时，会通过参数传递；否则，通
+    // arg - 传给协程的数据，首次调用协程时，会通过参数传递；否则，通
     // 过yield返回值传递
-    intptr_t resume(const coroutine_t &c, intptr_t data=0);
+    intptr_t resume(const coroutine_t &c, intptr_t arg=0);
 
     // yield - 暂停协程执行，并返回到调用点
     //
     // c - 协程自己 
-    // data - 传回给调用点的数据，通过resume返回值传递
-    intptr_t yield(self_t c, intptr_t data=0);
+    // arg - 传回给调用点的数据，通过resume返回值传递
+    intptr_t yield(self_t c, intptr_t arg=0);
 
     // 判断协程是否已执行完，即运行完了整个例程函数体或return
     bool complete(const coroutine_t &c);
+
+    void set_data(const coroutine_t &c, intptr_t data);
+    intptr_t get_data(self_t c);
+
+    inline
+    void set_data(const coroutine_t &c, void *data)
+    {
+        set_data(c, reinterpret_cast<intptr_t>(data));
+    }
+    template<typename T>
+    inline
+    T *get_data(self_t c)
+    {
+        return reinterpret_cast<T*>(get_data(c));
+    }
 
         
     void intrusive_ptr_add_ref(coroutine_impl_t *p);

@@ -160,4 +160,24 @@ TEST(Core, echo)
     }
 }
 
+intptr_t echo_by_udata(co::self_t self, intptr_t data)
+{
+    while(true)
+    {
+        data = get_data(self);
+        yield(self, data);
+    }
+    return 0;
+}
+
+TEST(Core, echo_by_udata)
+{
+    co::coroutine_t f = co::create(echo_by_udata);
+
+    for(int i=0; i<128; ++i)
+    {
+        co::set_data(f, i);
+        EXPECT_EQ(resume(f), i);
+    }
+}
 

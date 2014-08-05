@@ -33,13 +33,14 @@ namespace coroutine
     {
         int flags;
         routine_t f;
-        intptr_t data;
+        intptr_t arg;
+        intptr_t udata;
         void *context;
         void *caller;
         int refcount;
 
         coroutine_impl_t() :
-            flags(0), f(NULL), data(0),
+            flags(0), f(NULL), arg(0), udata(0),
             context(NULL), caller(NULL),
             refcount(0)
             {}
@@ -50,11 +51,11 @@ namespace coroutine
     struct forced_unwind {};
 
     static
-    void routine_starter(intptr_t data)
+    void routine_starter(intptr_t arg)
     {
-        coroutine_impl_t *co(reinterpret_cast<coroutine_impl_t*>(data));
+        coroutine_impl_t *co(reinterpret_cast<coroutine_impl_t*>(arg));
         try
-        { co->data = co->f(co, co->data); }
+        { co->arg = co->f(co, co->arg); }
         catch (const forced_unwind &)
         {}
         catch (const std::exception &)
@@ -65,7 +66,7 @@ namespace coroutine
         co->flags |= flag_complete;
         ctx::jump_fcontext((ctx::fcontext_t*)co->context,
                            (ctx::fcontext_t*)co->caller,
-                           co->data);
+                           co->arg);
     }
         
     coroutine_t create(routine_t f, bool rethrow, bool unwind, int stacksize)
@@ -85,7 +86,7 @@ namespace coroutine
     }
 
     static
-    intptr_t resume(coroutine_impl_t *c, intptr_t data=0);
+    intptr_t resume(coroutine_impl_t *c, intptr_t arg=0);
 
     void destroy(coroutine_impl_t *c)
     {
@@ -103,12 +104,12 @@ namespace coroutine
     }
 
     static
-    intptr_t resume(coroutine_impl_t *c, intptr_t data)
+    intptr_t resume(coroutine_impl_t *c, intptr_t arg)
     {
         assert((c->flags & flag_suspend) &&
                !(c->flags & flag_complete));
         c->flags &= ~flag_suspend;
-        c->data = data;
+        c->arg = arg;
         ctx::fcontext_t caller;
         c->caller = &caller;
         ctx::jump_fcontext((ctx::fcontext_t*)c->caller,
@@ -123,22 +124,22 @@ namespace coroutine
            (c->flags & flag_has_unknown_exception))
             throw exception_unknown();
             
-        return c->data;
+        return c->arg;
     }
 
-    intptr_t resume(const coroutine_t &f, intptr_t data)
+    intptr_t resume(const coroutine_t &f, intptr_t arg)
     {
         // always hold the coroutine before jump into
         coroutine_t c(f); 
-        return resume(c.get(), data);
+        return resume(c.get(), arg);
     }
 
-    intptr_t yield(coroutine_impl_t* c, intptr_t data)
+    intptr_t yield(coroutine_impl_t* c, intptr_t arg)
     {
         assert(!(c->flags & flag_suspend) &&
                !(c->flags & flag_complete));
         c->flags |= flag_suspend;
-        c->data = data;
+        c->arg = arg;
         ctx::jump_fcontext((ctx::fcontext_t*)c->context,
                            (ctx::fcontext_t*)c->caller,
                            reinterpret_cast<intptr_t>(c));
@@ -146,12 +147,22 @@ namespace coroutine
         {
             throw forced_unwind();
         }
-        return c->data;
+        return c->arg;
     }
 
     bool complete(const coroutine_t &c)
     {
         return c->flags & flag_complete;
+    }
+
+    void set_data(const coroutine_t &c, intptr_t data)
+    {
+        c->udata = data;
+    }
+
+    intptr_t get_data(self_t c)
+    {
+        return c->udata;
     }
 
     void intrusive_ptr_add_ref(coroutine_impl_t *p)
