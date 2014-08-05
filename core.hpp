@@ -3,6 +3,7 @@
 #define _COROUTINE_CORE_HPP_
 
 #include <stdint.h>
+#include <string>
 #include <exception>
 #include <boost/intrusive_ptr.hpp>
 
@@ -75,6 +76,8 @@ namespace coroutine
 
     void set_name(const coroutine_t &c, const char *name);
     const char *get_name(const coroutine_t &c);
+
+    std::string get_info(const coroutine_t &c);
     
     // 协程释放时调用的函数
     typedef void (*destroy_callback)(self_t);

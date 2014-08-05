@@ -2,6 +2,7 @@
 #include <core.hpp>
 
 #include <cstdlib>
+#include <sstream>
 #include <stdio.h>
 #include <cstring>
 #include <assert.h>
@@ -15,19 +16,19 @@ namespace coroutine
     
     enum flag_t
     {
-        // 协程运行状态：挂起<->运行->完成
-        flag_complete = 1 << 1,     // 标识是否运行完
-        flag_suspend = 1 << 2,  // 标识是否挂起状态
+        // （0-3比特组）协程运行状态：挂起<->运行->完成
+        flag_complete = 1 << 0,     // 标识是否运行完
+        flag_suspend = 1 << 1,  // 标识是否挂起状态
         // running == ! complete && ! suspend
 
-        // 协程选项值
-        flag_unwind = 1 << 3,   // 回溯栈开关
-        flag_rethrow = 1 << 4,  // 重抛异常开关
+        // （4-7比特组）协程选项值
+        flag_unwind = 1 << 4,   // 回溯栈开关
+        flag_rethrow = 1 << 5,  // 重抛异常开关
 
-        // 内部标识值
-        flag_request_unwind_stack = 1 << 5, // 请求回溯栈
-        flag_has_std_exception = 1 << 7,    // 有std异常抛出
-        flag_has_unknown_exception = 1 << 8, // 有未知异常抛出
+        // （8-11比特组）内部标识值
+        flag_request_unwind_stack = 1 << 8, // 请求回溯栈
+        flag_has_std_exception = 1 << 9,    // 有std异常抛出
+        flag_has_unknown_exception = 1 << 10, // 有未知异常抛出
     };
 
     static const std::size_t MAX_NAME_LEN = 256;
@@ -198,6 +199,36 @@ namespace coroutine
         -- p->refcount;
         if(p->refcount == 0)
             destroy(p);
+    }
+
+    std::string get_info(const coroutine_t &c)
+    {
+        std::ostringstream oss;
+        oss << "coroutine " << c.get()
+            << " <" << c->name << "> ("
+            << (void*)(intptr_t)c->flags << ")" // 输出十六进制值
+            /*<< " flag-complete: "
+            << ((c->flags & flag_complete) != 0)
+            << " flag-suspend: "
+            << ((c->flags & flag_suspend) != 0)
+            << " flag-unwind: "
+            << ((c->flags & flag_unwind) != 0)
+            << " flag-rethrow: "
+            << ((c->flags & flag_rethrow) != 0)
+            << " flag-request-unwind-stack: "
+            << ((c->flags & flag_request_unwind_stack) != 0)
+            << " flag-has-std-exception: "
+            << ((c->flags & flag_has_std_exception) != 0)
+            << " flag-has-unknown-exception: "
+            << ((c->flags & flag_has_unknown_exception) != 0)*/
+            << " routine: " << (void*)c->f
+            << " arg: " << c->arg << " (" << (void*)c->arg << ")"
+            << " udata: " << c->udata << " (" << (void*)c->udata << ")"
+            << " context: " << c->context
+            << " caller: " << c->caller
+            << " refcount: " << c->refcount
+            << " destroy_cb: " << (void*)c->destroy_cb;
+        return oss.str();
     }
 
 }

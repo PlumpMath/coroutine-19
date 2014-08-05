@@ -210,3 +210,17 @@ TEST(Core, set_get_name)
     EXPECT_TRUE(name == "dummy");
 }
 
+TEST(Core, get_info)
+{
+    co::coroutine_t f = co::create(dummy);
+    co::set_name(f, "dummy");
+    std::string info = co::get_info(f);
+    std::cout << info << std::endl;
+
+    co::resume(f);
+    EXPECT_TRUE(co::complete(f));
+
+    info = co::get_info(f);
+    std::cout << info << std::endl;
+}
+
