@@ -31,7 +31,7 @@ unittest: core_test.o sceduler_test.o dispatcher_test.o event_test.o
 	$(CXX) -o $@ $^ -lcoroutine $(LDFLAGS) -lgtest -lgtest_main
 
 clean:
-	rm -f main unittest *.o *.a
+	rm -f unittest *.o *.a
 
 
 
