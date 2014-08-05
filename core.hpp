@@ -73,6 +73,12 @@ namespace coroutine
         return reinterpret_cast<T*>(get_data(c));
     }
 
+    
+    // 协程释放时调用的函数
+    typedef void (*destroy_callback)(self_t);
+
+    void set_destroy_callback(const coroutine_t &c,
+                              destroy_callback cb);
         
     void intrusive_ptr_add_ref(coroutine_impl_t *p);
     void intrusive_ptr_release(coroutine_impl_t *p);

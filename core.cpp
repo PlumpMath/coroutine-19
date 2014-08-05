@@ -38,13 +38,16 @@ namespace coroutine
         void *context;
         void *caller;
         int refcount;
+        destroy_callback destroy_cb;
 
         coroutine_impl_t() :
             flags(0), f(NULL), arg(0), udata(0),
             context(NULL), caller(NULL),
-            refcount(0)
+            refcount(0), destroy_cb(NULL)
             {}
 
+        ~coroutine_impl_t()
+            { if(destroy_cb) { destroy_cb(this); } }
         
     };
 
@@ -163,6 +166,12 @@ namespace coroutine
     intptr_t get_data(self_t c)
     {
         return c->udata;
+    }
+
+    void set_destroy_callback(const coroutine_t &c,
+                              destroy_callback cb)
+    {
+        c->destroy_cb = cb;
     }
 
     void intrusive_ptr_add_ref(coroutine_impl_t *p)

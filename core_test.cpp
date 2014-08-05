@@ -181,3 +181,24 @@ TEST(Core, echo_by_udata)
     }
 }
 
+intptr_t dummy(co::self_t self, intptr_t data)
+{
+    return 0;
+}
+
+void destory_callback(co::self_t self)
+{
+    std::string *str = co::get_data<std::string>(self);
+    *str = "world";
+}
+
+TEST(Core, destory_callback)
+{
+    co::coroutine_t f = co::create(dummy);
+    std::string str("hello");
+    co::set_data(f, &str);
+    co::set_destroy_callback(f, destory_callback);
+    f.reset();                  // release and destroy
+    EXPECT_TRUE(str == "world");
+}
+
