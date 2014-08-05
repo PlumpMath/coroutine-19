@@ -73,12 +73,12 @@ void HttpServer::remove(HttpConnection &conn)
 }
 
 static
-intptr_t process_http(co::coroutine_t *self, intptr_t data);
+intptr_t process_http(co::self_t self, intptr_t data);
 
 void HttpServer::process_input(HttpConnection &conn,
                                ListByteBuffer *)
 {
-    co::coroutine_ptr f = co::create(process_http, _evbase);
+    co::coroutine_t f = co::create(process_http, _evbase);
     arg_t arg = std::make_tuple(conn.id(),
                                 _reactor.get(),
                                 _reader,
@@ -98,7 +98,7 @@ struct DataGuard
 #define CONN_CHECK_OR_RETURN(id) do { if(reactor->connection(id)==NULL) return 0; } while(false)
 
 static
-intptr_t process_http(co::coroutine_t *self, intptr_t data)
+intptr_t process_http(co::self_t self, intptr_t data)
 {
     const arg_t &arg = *(arg_t*)data;
 

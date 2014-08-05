@@ -5,8 +5,6 @@
 
 #include <gce/gfe/ihttpprocessor.hpp>
 
-namespace co = coroutine;
-
 class FixedSizeAllocator;
 class HttpReactor;
 class GfsReader;

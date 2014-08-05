@@ -19,7 +19,7 @@ public:
 
     char *
     read(uint64_t id,
-	 co::coroutine_t *c,
+	 co::self_t c,
 	 int timeout,
 	 const std::string &filename,
 	 std::size_t length,
