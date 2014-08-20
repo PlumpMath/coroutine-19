@@ -202,14 +202,15 @@ namespace coroutine
             destroy(p);
     }
 
-    void set_event_base(const coroutine_t &c, void *evbase)
+    void set_event_base(const coroutine_t &c,
+                        struct event_base *evbase)
     {
         c->event_base = (intptr_t)evbase;
     }
 
-    void *get_event_base(self_t c)
+    struct event_base *get_event_base(self_t c)
     {
-        return (void*)c->event_base;
+        return (struct event_base *)c->event_base;
     }
 
     std::string get_info(const coroutine_t &c)

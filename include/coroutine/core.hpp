@@ -7,6 +7,9 @@
 #include <exception>
 #include <boost/intrusive_ptr.hpp>
 
+// prototype
+struct event_base;
+
 namespace coroutine
 {
     struct coroutine_impl_t;
@@ -64,11 +67,23 @@ namespace coroutine
     // 过yield返回值传递
     intptr_t resume(const coroutine_t &c, intptr_t arg=0);
 
+    inline
+    intptr_t resume(const coroutine_t &c, void *arg)
+    {
+        return resume(c, (intptr_t)arg);
+    }
+
     // yield - 暂停协程执行，并返回到调用点
     //
     // c - 协程自己 
     // arg - 传回给调用点的数据，通过resume返回值传递
     intptr_t yield(self_t c, intptr_t arg=0);
+
+    inline
+    intptr_t yield(self_t c, void *arg)
+    {
+        return yield(c, (intptr_t)arg);
+    }
 
     // 判断协程是否已执行完，即运行完了整个例程函数体或return
     bool complete(const coroutine_t &c);
@@ -102,8 +117,9 @@ namespace coroutine
     void intrusive_ptr_add_ref(coroutine_impl_t *p);
     void intrusive_ptr_release(coroutine_impl_t *p);
 
-    void set_event_base(const coroutine_t &c, void *evbase);
-    void *get_event_base(self_t c);
+    void set_event_base(const coroutine_t &c,
+                        struct event_base *evbase);
+    struct event_base *get_event_base(self_t c);
 
     struct exception_unknown {};
 

@@ -85,3 +85,29 @@ TEST(Event, usleep_1500s)
                 (1500 + diff > elapsed));
 }
 
+intptr_t listen_f(co::self_t self, intptr_t data)
+{
+    {
+        co::listener_guard guard(co::listen(self, "8000"));
+        EXPECT_FALSE(guard.empty());
+    }
+
+    {
+        co::listener_guard guard(
+            co::listen(self, "127.0.0.1:8000"));
+        EXPECT_FALSE(guard.empty());
+    }
+
+    return 0;
+}
+
+TEST(Event, listen)
+{
+    co::coroutine_t listen_c(co::create(listen_f, base));
+    co::resume(listen_c);
+
+    event_base_dispatch(base);
+}
+
+
+
