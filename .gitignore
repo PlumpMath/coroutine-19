@@ -1,6 +1,7 @@
 *.o
 *.a
 test
-fsm
-httpdown
-
+examples/fsm
+examples/httpdown/httpdown
+examples/echoclient
+examples/echoserver
