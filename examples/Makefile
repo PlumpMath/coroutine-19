@@ -22,13 +22,19 @@ OBJS=$(patsubst %.cpp,%.o,$(SRCS))
 
 # ===== header end =====
 
-all: fsm
+all: fsm echoserver echoclient
 
 fsm: fsm.o
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
+echoserver:echoserver.o
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
+echoclient:echoclient.o
+	$(CXX) -o $@ $^ $(LDFLAGS)
+
 clean:
-	rm -f fsm *.o
+	rm -f fsm echoserver echoclient *.o
 
 
 
