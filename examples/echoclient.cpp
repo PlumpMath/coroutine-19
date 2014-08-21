@@ -1,6 +1,10 @@
 #include <coroutine/all.hpp>
 namespace co = coroutine;
 
+#include <iostream>
+
+#include <signal.h>
+
 intptr_t echo_client(co::self_t self, intptr_t data)
 {
     struct timeval tv;
@@ -8,7 +12,7 @@ intptr_t echo_client(co::self_t self, intptr_t data)
     tv.tv_sec = 3;
 
     const char *ip_port = (const char *)data;
-    evutil_socket_t fd = co::connect(self, ip_port, NULL);
+    evutil_socket_t fd = co::connect(self, ip_port, &tv);
     if(fd < 0)
     {
         std::cout << "connect fail " << errno << std::endl;
@@ -27,6 +31,7 @@ intptr_t echo_client(co::self_t self, intptr_t data)
     {
         ssize_t wbytes =
             writen(self, &tv, fd, str, str_len);
+        std::cout << "writen wbytes " << wbytes << std::endl;
         if(wbytes != (ssize_t)str_len)
         {
             int e = evutil_socket_geterror(fd);
@@ -58,8 +63,17 @@ intptr_t echo_client(co::self_t self, intptr_t data)
     return 0;
 }
 
+void ignore_pipe(void)
+{
+    struct sigaction sig;
+    sig.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &sig, 0);
+}
+
 int main(int argc, char **argv)
 {
+    ignore_pipe();
+
     const char *ip_port = "127.0.0.1:8080";
     int nloop = 10;
 
