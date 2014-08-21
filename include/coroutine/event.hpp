@@ -79,7 +79,7 @@ namespace coroutine
     };
 
     
-    typedef std::tuple<ev_socklen_t,
+    typedef std::tuple<evutil_socket_t,
                        struct sockaddr *,
                        ev_socklen_t> acceptor_param_t;
 
