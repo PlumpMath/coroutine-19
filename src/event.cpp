@@ -55,7 +55,7 @@ namespace coroutine
     // [ipv6]
     // ipv4:port
     // ipv4
-    // port
+    // port (as 127.0.0.1:port)
     static
     int parse_ip_port(const char *ip_port,
                       struct sockaddr *addr,
