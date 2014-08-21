@@ -1,6 +1,8 @@
 #include <coroutine/event.hpp>
 
 #include <memory>
+#include <string.h>
+#include <iostream>
 
 #include <unistd.h>
 
@@ -218,8 +220,8 @@ namespace coroutine
             {
                 return -1;
             }
-            
-            fd_guard.release();
+
+            fd_guard.release(); // connect success
             return fd;
         }
 
@@ -229,7 +231,7 @@ namespace coroutine
         //     return -1;
         // }
 
-        return -1;
+        return -1;              // connect fail
     }
 
     static
@@ -380,6 +382,7 @@ namespace coroutine
             event_add(&write_event, NULL);
         }
 
+        std::cout << "write wait " << fd << std::endl;
         // wait for event
         coroutine_t hold(writer);
         short got_event = yield(writer);
@@ -417,11 +420,13 @@ namespace coroutine
                      write_cb, writer);
         if(tv && evutil_timerisset(tv))
         {
-            event_add(&write_event, tv);
+            int rv = event_add(&write_event, tv);
+            assert(rv == 0);
         }
         else
         {
-            event_add(&write_event, NULL);
+            int rv = event_add(&write_event, NULL);
+            assert(rv == 0);
         }
 
         ssize_t total_bytes = 0;
@@ -429,6 +434,8 @@ namespace coroutine
         std::size_t left_len = data_len;
         while(true)
         {
+            std::cout << "writen wait " << fd << std::endl;
+
             // wait for event
             coroutine_t hold(writer);
             short got_event = yield(writer);
@@ -437,8 +444,10 @@ namespace coroutine
             {
                 break;
             }
-            
+
+            std::cout << "writen real write " << left_len << std::endl;
             ssize_t bytes = ::write(fd, pdata, left_len);
+            std::cout << "writen bytes " << bytes << std::endl;
             if(bytes >= 0)
             {
                 total_bytes += bytes;
