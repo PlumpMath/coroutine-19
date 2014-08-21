@@ -12,12 +12,17 @@ intptr_t echo_client(co::self_t self, intptr_t data)
     tv.tv_sec = 3;
 
     const char *ip_port = (const char *)data;
-    evutil_socket_t fd = co::connect(self, ip_port, &tv);
-    if(fd < 0)
+    evutil_socket_t fd = -1;
+    do
     {
-        std::cout << "connect fail " << errno << std::endl;
-        return -1;
+        fd = co::connect(self, ip_port, NULL);
+        if(fd < 0)
+        {
+            std::cout << "connect fail " << errno << std::endl;
+            co::sleep(self, 3);
+        }
     }
+    while(fd < 0);
 
     co::fd_close_guard guard(fd);
 
