@@ -2,6 +2,7 @@
 namespace co = coroutine;
 
 #include <iostream>
+#include <string.h>
 
 intptr_t echo_server(co::self_t self, intptr_t data)
 {
