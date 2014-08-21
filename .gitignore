@@ -1,7 +1,8 @@
 *.o
 *.a
-test
+test/test
 examples/fsm
 examples/httpdown/httpdown
 examples/echoclient
 examples/echoserver
+cscope.out
