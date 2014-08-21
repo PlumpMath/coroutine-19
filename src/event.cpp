@@ -5,6 +5,8 @@
 #include <iostream>
 
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include <event2/event_struct.h>
 #include <event2/util.h>
@@ -185,6 +187,11 @@ namespace coroutine
 
         int e = evutil_socket_geterror(fd);
 
+        int err = 0;
+        socklen_t err_len = sizeof(err);
+        getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &err_len);
+        std::cout << "err " << err << std::endl;
+
         // true iff e is an error that means an connect can be retried.
         if(e == EINTR || e == EINPROGRESS)
         {
@@ -216,9 +223,26 @@ namespace coroutine
             short got_event = yield(connector);
             std::cout << "got connect events " << got_event
                       << std::endl;
+
             if(got_event & EV_TIMEOUT)
             {
                 return -1;
+            }
+
+            int err = 0;
+            socklen_t err_len = sizeof(err);
+            int rv_getsockopt =
+                getsockopt(fd, SOL_SOCKET, SO_ERROR,
+                           &err, &err_len);
+            if(rv_getsockopt < 0)
+            {
+                return -1;
+            }
+            std::cout << "err " << err
+                      << ", errno " << errno << std::endl;
+            if(err == ECONNREFUSED)
+            {
+                return -1;      // connect refused
             }
 
             fd_guard.release(); // connect success
@@ -280,8 +304,6 @@ namespace coroutine
         {
             bytes = ::read(fd, buf, buf_len);
         }
-        
-        event_del(&read_event);
         
         return bytes;
     }
@@ -396,8 +418,6 @@ namespace coroutine
         {
             bytes = ::write(fd, data, data_len);
         }
-
-        event_del(&write_event);
 
         return bytes;
     }
