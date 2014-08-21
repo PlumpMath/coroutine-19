@@ -1,6 +1,7 @@
 #include <string>
 #include <queue>
 #include <thread>
+#include <iostream>
 
 #include <pthread.h>
 

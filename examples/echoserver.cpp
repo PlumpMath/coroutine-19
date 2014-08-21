@@ -1,6 +1,8 @@
 #include <coroutine/all.hpp>
 namespace co = coroutine;
 
+#include <iostream>
+
 intptr_t echo_server(co::self_t self, intptr_t data)
 {
     evutil_socket_t fd;
