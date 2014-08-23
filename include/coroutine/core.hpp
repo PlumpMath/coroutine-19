@@ -26,7 +26,7 @@ namespace coroutine
 
     // bad_coroutine - 常量，表示错误协程。可与self_t或coroutine_t进行
     // ==或!=比较。
-    #define bad_coroutine ((coroutine_impl_t *)NULL)
+    #define bad_coroutine ((self_t)NULL);
 
     struct Options
     {
@@ -120,6 +120,24 @@ namespace coroutine
     void set_event_base(const coroutine_t &c,
                         struct event_base *evbase);
     struct event_base *get_event_base(self_t c);
+
+    inline
+    coroutine_t create(routine_t f, struct event_base *evbase)
+    {
+        coroutine_t c(create(f));
+        set_event_base(c, evbase);
+        return c;
+    }
+
+    inline
+    coroutine_t create(routine_t f,
+                       struct event_base *evbase,
+                       std::size_t stacksize)
+    {
+        coroutine_t c(create(f, stacksize));
+        set_event_base(c, evbase);
+        return c;
+    }
 
     struct exception_unknown {};
 

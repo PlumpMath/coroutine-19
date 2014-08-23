@@ -38,12 +38,12 @@ namespace coroutine
         struct timeval tv;
 
         evtimer_assign(&timeout, evbase,
-                       timeout_callback, (void*)c);
+                       timeout_callback, c);
                        
         evutil_timerclear(&tv);
         tv.tv_sec = sec;
         tv.tv_usec = usec;
-        event_add(&timeout, &tv);
+        evtimer_add(&timeout, &tv);
 
         coroutine_t hold(c);  // prevent destroy
         yield(c);

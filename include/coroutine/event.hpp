@@ -9,23 +9,6 @@
 
 namespace coroutine
 {
-    inline
-    coroutine_t create(routine_t f, struct event_base *evbase)
-    {
-        coroutine_t c(create(f));
-        set_event_base(c, evbase);
-        return c;
-    }
-
-    inline
-    coroutine_t create(routine_t f,
-                       struct event_base *evbase,
-                       std::size_t stacksize)
-    {
-        coroutine_t c(create(f, stacksize));
-        set_event_base(c, evbase);
-        return c;
-    }
 
     void poll_event_base(struct event_base *evbase);
 
