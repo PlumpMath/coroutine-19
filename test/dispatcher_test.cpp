@@ -12,9 +12,6 @@ namespace co = coroutine;
 static 
 struct event_base *base = event_base_new();
 
-typedef co::Dispatcher<long> LongDispatcher;
-typedef co::Dispatcher<std::string> StringDispatcher;
-
 struct Guard
 {
     Guard(std::string *s) : _s(s) {}
@@ -22,10 +19,16 @@ struct Guard
     std::string *_s;
 };
 
+intptr_t no_wait_f(co::self_t self, intptr_t data)
+{
+    while(true) co::sleep(self, 1);
+    return 0;
+}
+
 intptr_t wait_for_cat(co::self_t self, intptr_t data)
 {
-    StringDispatcher &d = *(StringDispatcher*)data;
-    std::pair<intptr_t, bool> ret = d.wait(self, "cat");
+    co::Dispatcher &d = *(co::Dispatcher*)data;
+    std::pair<intptr_t, bool> ret = d.wait(self);
     EXPECT_TRUE(ret.second);
     std::string &cat = *(std::string*)ret.first;
     EXPECT_EQ(cat, "this is a cat.");
@@ -34,8 +37,8 @@ intptr_t wait_for_cat(co::self_t self, intptr_t data)
 
 intptr_t wait_for_dog(co::self_t self, intptr_t data)
 {
-    StringDispatcher &d = *(StringDispatcher*)data;
-    std::pair<intptr_t, bool> ret = d.wait(self, "dog");
+    co::Dispatcher &d = *(co::Dispatcher*)data;
+    std::pair<intptr_t, bool> ret = d.wait(self);
     EXPECT_TRUE(ret.second);
     std::string &dog = *(std::string*)ret.first;
     EXPECT_EQ(dog, "this is a dog.");
@@ -44,16 +47,16 @@ intptr_t wait_for_dog(co::self_t self, intptr_t data)
 
 intptr_t wait_for_dog_dup(co::self_t self, intptr_t data)
 {
-    StringDispatcher &d = *(StringDispatcher*)data;
-    std::pair<intptr_t, bool> ret = d.wait(self, "dog");
+    co::Dispatcher &d = *(co::Dispatcher*)data;
+    std::pair<intptr_t, bool> ret = d.wait(self);
     EXPECT_FALSE(ret.second);
     return 0;
 }
 
 intptr_t wait_for_tiger(co::self_t self, intptr_t data)
 {
-    StringDispatcher &d = *(StringDispatcher*)data;
-    std::pair<intptr_t, bool> ret = d.wait(self, "tiger");
+    co::Dispatcher &d = *(co::Dispatcher*)data;
+    std::pair<intptr_t, bool> ret = d.wait(self);
     EXPECT_TRUE(ret.second);
     std::string &tiger = *(std::string*)ret.first;
     EXPECT_EQ(tiger, "this is a tiger.");
@@ -63,8 +66,8 @@ intptr_t wait_for_tiger(co::self_t self, intptr_t data)
 intptr_t wait_for_tiger_with_guard(co::self_t self,
                                    intptr_t data)
 {
-    StringDispatcher &d = *(StringDispatcher*)data;
-    std::pair<intptr_t, bool> ret = d.wait(self, "tiger");
+    co::Dispatcher &d = *(co::Dispatcher*)data;
+    std::pair<intptr_t, bool> ret = d.wait(self);
     EXPECT_TRUE(ret.second);
     std::string *tiger = (std::string*)ret.first;
     Guard guard(tiger);
@@ -78,9 +81,9 @@ intptr_t wait_for_tiger_with_guard(co::self_t self,
 intptr_t wait_for_1s_timeout(co::self_t self,
                              intptr_t data)
 {
-    StringDispatcher &d = *(StringDispatcher*)data;
+    co::Dispatcher &d = *(co::Dispatcher*)data;
     std::pair<intptr_t, bool> ret =
-        d.wait(self, "tiger", 1);
+        d.wait(self, 1);
     EXPECT_TRUE(ret.second);
     EXPECT_EQ(ret.first, 0);
 
@@ -92,30 +95,38 @@ intptr_t wait_for_1s_timeout(co::self_t self,
 TEST(Dispatcher, dispatch_success)
 {
 
-    StringDispatcher d;
+    co::Dispatcher d;
 
+    co::self_t cat;
+    co::self_t dog;
+    co::self_t tiger;
     {
-        co::resume(co::create(wait_for_cat, base),
-                   (intptr_t)&d);
-        co::resume(co::create(wait_for_dog, base),
-                   (intptr_t)&d);
-        co::resume(co::create(wait_for_tiger, base),
-                   (intptr_t)&d);
+        co::coroutine_t c = co::create(wait_for_cat, base);
+        cat = c.get();
+        co::resume(c, (intptr_t)&d);
+
+        c = co::create(wait_for_dog, base);
+        dog = c.get();
+        co::resume(c, (intptr_t)&d);
+
+        c = co::create(wait_for_tiger, base);
+        tiger = c.get();
+        co::resume(c, (intptr_t)&d);
     }
 
     std::string data;
     std::size_t n;
 
     data = "this is a cat.";
-    n = d.notify("cat", (intptr_t)&data);
+    n = d.notify(cat, (intptr_t)&data);
     EXPECT_TRUE(n == 1);
 
     data = "this is a dog.";
-    n = d.notify("dog", (intptr_t)&data);
+    n = d.notify(dog, (intptr_t)&data);
     EXPECT_TRUE(n == 1);
 
     data = "this is a tiger.";
-    n = d.notify("tiger", (intptr_t)&data);
+    n = d.notify(tiger, (intptr_t)&data);
     EXPECT_TRUE(n == 1);
 }
 
@@ -123,64 +134,78 @@ TEST(Dispatcher, dispatch_success)
 TEST(Dispatcher, wait_for_duplicated)
 {
 
-    StringDispatcher d;
+    co::Dispatcher d;
 
+    co::self_t dog;
+    co::self_t dog_dup;
     {
-        co::resume(co::create(wait_for_dog, base),
-                   (intptr_t)&d);
-        co::resume(co::create(wait_for_dog_dup, base),
-                   (intptr_t)&d);
+        co::coroutine_t c = co::create(wait_for_dog, base);
+        dog = c.get();
+        co::resume(c, (intptr_t)&d);
+
+        c = co::create(wait_for_dog_dup, base);
+        dog_dup = c.get();
+        co::resume(c, (intptr_t)&d);
     }
 
     int n;
     std::string data = "this is a dog.";
-    n = d.notify("dog", (intptr_t)&data);
+    n = d.notify(dog, (intptr_t)&data);
     EXPECT_TRUE(n == 1);
 
-    n = d.notify("dog", (intptr_t)&data);
+    n = d.notify(dog, (intptr_t)&data);
     EXPECT_TRUE(n == 0);
 }
 
 
 TEST(Dispatcher, dispatch_no_waiters)
 {
+    co::Dispatcher d;
 
-    StringDispatcher d;
-
-    {
-        co::resume(co::create(wait_for_dog, base),
-                   (intptr_t)&d);
-    }
+    co::self_t no_wait = co::bad_coroutine;
 
     int n;
+    n = d.notify(no_wait, (intptr_t)&d);
+    EXPECT_TRUE(n == 0);
+
+    {
+        co::coroutine_t c = co::create(no_wait_f, base);
+        no_wait = c.get();
+        co::resume(c, (intptr_t)&d);
+    }
+
     std::string data = "this is a cat.";
-    n = d.notify("cat", (intptr_t)&data);
+    n = d.notify(no_wait, (intptr_t)&data);
     EXPECT_TRUE(n == 0);
 }
 
 TEST(Dispatcher, coroutine_auto_destroy)
 {
 
-    StringDispatcher d;
+    co::Dispatcher d;
 
+    co::self_t tiger;
     {
-        co::resume(co::create(wait_for_tiger_with_guard, base),
-                   (intptr_t)&d);
+        co::coroutine_t c =
+            co::create(wait_for_tiger_with_guard, base);
+        tiger = c.get();
+        co::resume(c, (intptr_t)&d);
     }
 
     int n;
     std::string data = "this is a tiger.";
-    n = d.notify("tiger", (intptr_t)&data);
+    n = d.notify(tiger, (intptr_t)&data);
     EXPECT_TRUE(n == 1);
     EXPECT_EQ(data, "");
 }
 
 TEST(Dispatcher, wait_for_1s_timeout)
 {
-
-    StringDispatcher d;
+    struct event_base *base = event_base_new();
+    co::Dispatcher d;
 
     co::coroutine_t c = co::create(wait_for_1s_timeout, base);
+    co::self_t tiger = c.get();
     co::resume(c, (intptr_t)&d);
 
     event_base_dispatch(base);
@@ -188,8 +213,10 @@ TEST(Dispatcher, wait_for_1s_timeout)
     // here is no waiter already
     std::size_t n;
     std::string data = "this is a tiger.";
-    n = d.notify("tiger", (intptr_t)&data);
+    n = d.notify(tiger, (intptr_t)&data);
     EXPECT_TRUE(n == 0);
+
+    event_base_free(base);
 }
 
 

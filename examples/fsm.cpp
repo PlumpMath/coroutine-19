@@ -40,22 +40,21 @@ intptr_t process_mysql_req(co::self_t self,
 
 struct MysqlReq
 {
-    uint64_t seq;
+    co::self_t source;
     std::string sql;
 };
 
 struct MysqlResp
 {
-    uint64_t seq;
+    co::self_t target;
     std::string result;
 };
 
-uint64_t mysql_seq = 0;
 std::queue<MysqlReq> mysql_thread_inqueue;
 std::queue<MysqlResp> mysql_thread_outqueue;
 pthread_mutex_t mysql_thread_inqueue_mutex;
 pthread_mutex_t mysql_thread_outqueue_mutex;
-co::Dispatcher<uint64_t> mysql_dispatcher;
+co::Dispatcher mysql_dispatcher;
 
 std::string mysql_execute(std::string sql);
 
@@ -84,7 +83,7 @@ void mysql_thread()
         std::string result = mysql_execute(req.sql);
 
         MysqlResp resp;
-        resp.seq = req.seq;
+        resp.target = req.source;
         resp.result = result;
 
         pthread_mutex_lock(&mysql_thread_outqueue_mutex);
@@ -107,7 +106,7 @@ std::string mysql_execute(co::self_t self,
                           long timeout_sec)
 {
     MysqlReq req;
-    req.seq = ++ mysql_seq;
+    req.source = self;
     req.sql = sql;
 
     pthread_mutex_lock(&mysql_thread_inqueue_mutex);
@@ -117,7 +116,7 @@ std::string mysql_execute(co::self_t self,
     intptr_t retval;
     bool ok;
     std::tie(retval, ok) =
-        mysql_dispatcher.wait(self, req.seq, timeout_sec);
+        mysql_dispatcher.wait(self, timeout_sec);
     assert(ok);
 
     std::string *result = (std::string*)retval;
@@ -143,7 +142,7 @@ int mysql_thread_poll(int max_process_once = 64)
         pthread_mutex_unlock(&mysql_thread_outqueue_mutex);
         
         intptr_t data = (intptr_t)&resp.result;
-        int n = mysql_dispatcher.notify(resp.seq, data);
+        int n = mysql_dispatcher.notify(resp.target, data);
         assert(n == 1);
     }
     return i;
