@@ -7,7 +7,7 @@
 #include <gce/gfe/http_reactor.h>
 #include <appframe/fixed_size_allocator.h>
 
-#include <coroutine-cpp/event.hpp>
+#include <coroutine/event.hpp>
 
 //#include "gfs.hpp"
 #include "localfs.hpp"
@@ -108,9 +108,8 @@ intptr_t process_http(co::self_t self, intptr_t data)
     FixedSizeAllocator *allocator;
     std::tie(connid, reactor, reader, allocator) = arg;
     
-    const uint64_t id = connid;
     CONN_CHECK_OR_RETURN(connid);
-    HttpConnection *pconn = reactor->connection(id);
+    HttpConnection *pconn = reactor->connection(connid);
 
     // 1. parse the request
     const std::size_t blocksize = 1*1024*1024;
@@ -144,7 +143,7 @@ intptr_t process_http(co::self_t self, intptr_t data)
         std::size_t nread = (std::min)(blocksize, remain);
         
         char *data = reader->read(
-            id, self, 30,
+            self, 30,
             filename, nread, offset);
 
         DataGuard guard(data, reader);

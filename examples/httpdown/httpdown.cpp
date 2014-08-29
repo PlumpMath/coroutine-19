@@ -5,7 +5,7 @@
 #include <signal.h>
 #include <unistd.h>
 
-#include <coroutine-cpp/event.hpp>
+#include <coroutine/event.hpp>
 
 #include "http_server.hpp"
 #include "gfs_reader.hpp"

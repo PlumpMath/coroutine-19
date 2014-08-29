@@ -7,7 +7,7 @@
 
 #include <appframe/circular_array_queue.hpp>
 
-#include <coroutine-cpp/dispatcher.hpp>
+#include <coroutine/dispatcher.hpp>
 
 namespace co = coroutine;
 
@@ -18,8 +18,7 @@ public:
     ~GfsReader();
 
     char *
-    read(uint64_t id,
-	 co::self_t c,
+    read(co::self_t c,
 	 int timeout,
 	 const std::string &filename,
 	 std::size_t length,
@@ -33,19 +32,19 @@ private:
     void start();
     void stop();
 
-    typedef std::tuple<uint64_t,    // id
+    typedef std::tuple<co::self_t,  // coroutine
                        std::string, // filename
                        std::size_t, // nread
-                       uint64_t    // offset
+                       uint64_t	    // offset
                        > ReqItem;
 
-    typedef std::tuple<uint64_t,    // id
+    typedef std::tuple<co::self_t, // coroutine
                        char*
                        > RespItem;
 
     CircularArrayQueue<ReqItem> _inq;
     CircularArrayQueue<RespItem> _outq;
-    co::Dispatcher<uint64_t> _dispatcher;
+    co::Dispatcher _dispatcher;
     bool _stop;
     std::thread _thread;
 };

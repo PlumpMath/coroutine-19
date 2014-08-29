@@ -26,22 +26,21 @@ GfsReader::~GfsReader()
 }
 
 char *
-GfsReader::read(uint64_t id,
-                co::self_t c,
+GfsReader::read(co::self_t c,
                 int timeout,
                 const std::string &filename,
                 std::size_t length,
                 uint64_t offset)
 {
     int rv = _inq.push(
-        std::make_tuple(id,
+        std::make_tuple(c,
                         filename,
                         length,
                         offset));
     assert(rv == 0);
     intptr_t d;
     bool ok;
-    std::tie(d, ok) = _dispatcher.wait(c, id, timeout);
+    std::tie(d, ok) = _dispatcher.wait(c, timeout);
     assert(ok);
     char *da = (char*)d;
 
