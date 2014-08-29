@@ -3,6 +3,7 @@
 #include <tuple>
 #include <algorithm>
 #include <sys/time.h>
+#include <memory>
 
 #include <gce/gfe/http_reactor.h>
 #include <appframe/fixed_size_allocator.h>
@@ -86,15 +87,6 @@ void HttpServer::process_input(HttpConnection &conn,
     co::resume(f, (intptr_t)&arg);
 }
 
-struct DataGuard
-{
-    DataGuard(char *data, GfsReader *reader)
-        : _data(data), _reader(reader) {}
-    ~DataGuard() { _reader->release_data_array(_data); }
-    char *_data;
-    GfsReader *_reader;
-};
-
 #define CONN_CHECK_OR_RETURN(id) do { if(reactor->connection(id)==NULL) return 0; } while(false)
 
 static
@@ -138,30 +130,24 @@ intptr_t process_http(co::self_t self, intptr_t data)
 
     // 3. read and write data
     std::size_t remain = length;
+    std::unique_ptr<char[]> buffer(new char[blocksize]);
     while(remain > 0)
     {
         std::size_t nread = (std::min)(blocksize, remain);
         
-        char *data = reader->read(
-            self, 30,
-            filename, nread, offset);
-
-        DataGuard guard(data, reader);
-
-        std::size_t buflen = (unsigned int)reply.body_buff_length();
-        bool empty = reply.body_buff_empty();
-        printf("conn %ld data read, buflen=%zd, empty=%d\n",connid,
-               buflen, (int)empty);
-
-        if(data == NULL)
-        {
-            // timeout
-            printf("conn %ld empty data, nread=%zd, remain=%zd\n",
-                   connid, nread, remain);
+	ssize_t nreaded = reader->read(self, 30, filename,
+				       buffer.get(),
+				       nread, offset);
+	if(nreaded != (ssize_t)nread)
+	{
+	    printf("conn %ld empty data, "
+		   "nreaded=%zd, nread=%zd, remain=%zd\n",
+                   connid, nreaded, nread, remain);
             CONN_CHECK_OR_RETURN(connid);
-            pconn->close();
-            return 0;
-        }
+	    pconn->close();
+	    return 0;
+	}
+	char *data = buffer.get();
 
         remain -= nread;
         offset += nread;

@@ -25,16 +25,18 @@ GfsReader::~GfsReader()
     stop();
 }
 
-char *
+ssize_t
 GfsReader::read(co::self_t c,
                 int timeout,
                 const std::string &filename,
+		char *buffer,
                 std::size_t length,
                 uint64_t offset)
 {
     int rv = _inq.push(
         std::make_tuple(c,
                         filename,
+			buffer,
                         length,
                         offset));
     assert(rv == 0);
@@ -42,9 +44,8 @@ GfsReader::read(co::self_t c,
     bool ok;
     std::tie(d, ok) = _dispatcher.wait(c, timeout);
     assert(ok);
-    char *da = (char*)d;
 
-    return da;
+    return (ssize_t)d;
 }
 
 int GfsReader::poll()
@@ -57,7 +58,7 @@ int GfsReader::poll()
     {
         RespItem &item = _outq.front();
         n = _dispatcher.notify(std::get<0>(item),
-                               (intptr_t)std::get<1>(item));
+                               std::get<1>(item));
         assert(n == 1);
 
         _outq.pop();
@@ -67,27 +68,21 @@ int GfsReader::poll()
 }
 
 static
-char *read_file(const char *filename,
-                std::size_t length,
-                uint64_t offset)
+ssize_t read_file(const char *filename,
+		  char *buffer,
+		  std::size_t length,
+		  uint64_t offset)
                      
 {
     fs::file_t fd = fs::open(filename);
-    char *data = new char[length];
-    ssize_t rv = fs::preadn(fd, data, length, offset);
+    ssize_t rv = fs::preadn(fd, buffer, length, offset);
     fs::close(fd);
     if((size_t)rv < length)
     {
         printf("read error, errno:%d, rv:%ld",
                fs::get_errno(), rv);
-        assert(false);
     }
-    return data;
-}
-
-void GfsReader::release_data_array(char *da)
-{
-    delete [] da;
+    return rv;
 }
 
 void GfsReader::thread_fun()
@@ -97,12 +92,13 @@ void GfsReader::thread_fun()
         while(_inq.empty()) usleep(20);
 
         ReqItem &req = _inq.front();
-        char *data = read_file(std::get<1>(req).c_str(),
-                               std::get<2>(req),
-                               std::get<3>(req));
+        ssize_t nreaded = read_file(std::get<1>(req).c_str(),
+				    std::get<2>(req),
+				    std::get<3>(req),
+				    std::get<4>(req));
 
         RespItem resp = std::make_tuple(std::get<0>(req),
-                                        data);
+                                        nreaded);
         _outq.push(resp);
         _inq.pop();
     }

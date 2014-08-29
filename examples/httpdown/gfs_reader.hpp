@@ -17,10 +17,11 @@ public:
     GfsReader();
     ~GfsReader();
 
-    char *
+    ssize_t
     read(co::self_t c,
 	 int timeout,
 	 const std::string &filename,
+	 char *buffer,
 	 std::size_t length,
 	 uint64_t offset);
 
@@ -34,12 +35,13 @@ private:
 
     typedef std::tuple<co::self_t,  // coroutine
                        std::string, // filename
+		       char *,	    // buffer
                        std::size_t, // nread
                        uint64_t	    // offset
                        > ReqItem;
 
     typedef std::tuple<co::self_t, // coroutine
-                       char*
+                       ssize_t	   // read retval
                        > RespItem;
 
     CircularArrayQueue<ReqItem> _inq;
